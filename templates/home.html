@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="home-page">
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1 class="page-title">Welcome to Your Stock Analysis Dashboard</h1>
+        <p class="page-subtitle">Analyze stocks with DCF models, track your research, and manage your watchlist - all in one place.</p>
+    </section>
+
+    <!-- Quick Actions -->
+    <section class="quick-actions">
+        <h2 class="section-title">Quick Actions</h2>
+        <div class="action-cards">
+            <a href="{{ url_for('dcf') }}" class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-calculator"></i>
+                </div>
+                <h3>DCF Analysis</h3>
+                <p>Perform Discounted Free Cash Flow analysis to calculate intrinsic stock values.</p>
+                <div class="card-features">
+                    <span><i class="fas fa-check"></i> Multi-stage growth rates</span>
+                    <span><i class="fas fa-check"></i> Custom discount rates</span>
+                    <span><i class="fas fa-check"></i> Share dilution adjustments</span>
+                </div>
+                <span class="card-cta">Start Analysis <i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a href="{{ url_for('reports') }}" class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-file-alt"></i>
+                </div>
+                <h3>Stock Reports</h3>
+                <p>Document your due diligence, insights, and research notes on specific stocks.</p>
+                <div class="card-features">
+                    <span><i class="fas fa-check"></i> Organized by ticker</span>
+                    <span><i class="fas fa-check"></i> Date tracking</span>
+                    <span><i class="fas fa-check"></i> Easy search & retrieval</span>
+                </div>
+                <span class="card-cta">View Reports <i class="fas fa-arrow-right"></i></span>
+            </a>
+
+            <a href="{{ url_for('wishlist') }}" class="action-card">
+                <div class="card-icon">
+                    <i class="fas fa-star"></i>
+                </div>
+                <h3>Wishlist</h3>
+                <p>Track stocks you're interested in with target prices and real-time market data.</p>
+                <div class="card-features">
+                    <span><i class="fas fa-check"></i> Real-time prices</span>
+                    <span><i class="fas fa-check"></i> Target price tracking</span>
+                    <span><i class="fas fa-check"></i> Quick analysis access</span>
+                </div>
+                <span class="card-cta">Manage Wishlist <i class="fas fa-arrow-right"></i></span>
+            </a>
+        </div>
+    </section>
+
+    <!-- Features Overview -->
+    <section class="features-overview">
+        <h2 class="section-title">How It Works</h2>
+        <div class="features-grid">
+            <div class="feature-item">
+                <div class="feature-number">1</div>
+                <h4>Analyze with DCF</h4>
+                <p>Input financial metrics like free cash flow, growth rates, and discount rate to calculate intrinsic value.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-number">2</div>
+                <h4>Document Research</h4>
+                <p>Save your analysis results and create detailed reports with notes and insights on each stock.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-number">3</div>
+                <h4>Track Opportunities</h4>
+                <p>Add stocks to your wishlist with target prices and monitor them for buying opportunities.</p>
+            </div>
+            <div class="feature-item">
+                <div class="feature-number">4</div>
+                <h4>Make Decisions</h4>
+                <p>Use your comprehensive analysis and research to make informed investment decisions.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Info Section -->
+    <section class="info-section">
+        <div class="info-box">
+            <i class="fas fa-info-circle"></i>
+            <div>
+                <h4>About This Tool</h4>
+                <p>This is a personal stock analysis tool designed to help you perform thorough due diligence using the Discounted Free Cash Flow method. All data and analyses are for personal use only and should not be considered financial advice.</p>
+            </div>
+        </div>
+    </section>
+</div>
+{% endblock %}

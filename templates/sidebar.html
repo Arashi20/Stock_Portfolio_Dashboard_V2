@@ -1,0 +1,35 @@
+<aside class="sidebar">
+    <div class="sidebar-header">
+        <h1 class="app-logo">
+            <i class="fas fa-chart-line"></i>
+            amstocks.nl
+        </h1>
+    </div>
+    
+    <nav class="sidebar-nav">
+        <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
+            <i class="fas fa-home"></i>
+            <span>Home</span>
+        </a>
+        
+        <a href="{{ url_for('dcf') }}" class="nav-link {% if request.endpoint == 'dcf' %}active{% endif %}">
+            <i class="fas fa-calculator"></i>
+            <span>DCF Analysis</span>
+        </a>
+        
+        <a href="{{ url_for('reports') }}" class="nav-link {% if request.endpoint == 'reports' %}active{% endif %}">
+            <i class="fas fa-file-alt"></i>
+            <span>Reports</span>
+        </a>
+        
+        <a href="{{ url_for('wishlist') }}" class="nav-link {% if request.endpoint == 'wishlist' %}active{% endif %}">
+            <i class="fas fa-star"></i>
+            <span>Wishlist</span>
+        </a>
+    </nav>
+    
+    <div class="sidebar-footer">
+        <p class="app-version">v1.0.0</p>
+        <p class="app-info">Personal Stock Analysis Tool</p>
+    </div>
+</aside>
