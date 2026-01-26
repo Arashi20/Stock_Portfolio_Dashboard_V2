@@ -73,3 +73,15 @@ wheels/
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Instances
+instance/
+.webassets-cache/
+
+# Database
+instance/
+*.sqlite3
+*.db
+
+# Github instructions
+general.instructions.md

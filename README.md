@@ -11,6 +11,5 @@ The main features will be the same as the previous web app, namely:
 # Infrastructure
 
 Similar to the previous project, I will be using Flask for the backend and HTML+CSS+JS for the frontend. The design of the web application will be very similar to the previous iteration, but it might have some better aesthetic improvements and some quality-of-life improvements. 
-
-The web app will be hosted on Railway, again under the same URL: ['amstocks.nl']
+The web app will be hosted on Railway, again under the same URL: ["amstocks.nl"]
 

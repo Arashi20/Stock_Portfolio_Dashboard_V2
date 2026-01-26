@@ -6,6 +6,11 @@
         </h1>
     </div>
     
+    <div class="user-info">
+        <i class="fas fa-user-circle"></i>
+        <span>Logged in as: <strong>{{ current_user.username }}</strong></span>
+    </div>
+    
     <nav class="sidebar-nav">
         <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
             <i class="fas fa-home"></i>
@@ -26,6 +31,13 @@
             <i class="fas fa-star"></i>
             <span>Wishlist</span>
         </a>
+        
+        <div style="margin-top: auto; padding: 0 1.5rem;">
+            <a href="{{ url_for('logout') }}" class="nav-link" style="color: #f87171; margin-top: 2rem;">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </div>
     </nav>
     
     <div class="sidebar-footer">
