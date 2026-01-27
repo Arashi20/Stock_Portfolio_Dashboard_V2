@@ -9,6 +9,14 @@
     {% block extra_css %}{% endblock %}
 </head>
 <body>
+    <!-- Mobile Menu Button -->
+    <button class="mobile-menu-btn" id="mobileMenuBtn" aria-label="Toggle menu">
+        <i class="fas fa-bars"></i>
+    </button>
+    
+    <!-- Backdrop Overlay -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+    
     <div class="app-container">
         <!-- Sidebar Navigation -->
         {% include 'sidebar.html' %}
@@ -52,6 +60,51 @@
             </div>
         </div>
     </div>
+
+    <script>
+        // Mobile sidebar toggle
+        const mobileMenuBtn = document.getElementById('mobileMenuBtn');
+        const sidebar = document.querySelector('.sidebar');
+        const backdrop = document.getElementById('sidebarBackdrop');
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        function openSidebar() {
+            sidebar.classList.add('active');
+            backdrop.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        }
+        
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            backdrop.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+        
+        function toggleSidebar() {
+            if (sidebar.classList.contains('active')) {
+                closeSidebar();
+            } else {
+                openSidebar();
+            }
+        }
+        
+        if (mobileMenuBtn) {
+            mobileMenuBtn.addEventListener('click', toggleSidebar);
+        }
+        
+        if (backdrop) {
+            backdrop.addEventListener('click', closeSidebar);
+        }
+        
+        // Close sidebar when clicking nav link on mobile
+        navLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                if (window.innerWidth <= 768) {
+                    closeSidebar();
+                }
+            });
+        });
+    </script>
 
     <script>
         // Delete modal functionality
