@@ -310,10 +310,6 @@
                             Save Analysis
                         </button>
                     </form>
-                    <a href="{{ url_for('reports') }}?ticker={{ result.ticker }}" class="btn btn-secondary">
-                        <i class="fas fa-file-alt"></i>
-                        Create Report
-                    </a>
                 </div>
             </div>
         </div>
@@ -358,11 +354,19 @@
                                 <td>{{ analysis.share_dilution }}%</td>
                                 <td class="intrinsic-value">{{ analysis.currency }}{{ "%.2f"|format(analysis.intrinsic_value) }}</td>
                                 <td>
-                                    <form method="POST" action="{{ url_for('delete_dcf_analysis', id=analysis.id) }}" style="display: inline;" onsubmit="return confirm('Delete this analysis?');">
-                                        <button type="submit" class="btn-delete">
-                                            <i class="fas fa-trash-alt"></i>
+                                    <div class="action-buttons">
+                                        <button class="btn-action btn-report" title="Create Report" onclick="alert('Report feature coming soon!')">
+                                            <i class="fas fa-file-alt"></i>
                                         </button>
-                                    </form>
+                                        <button class="btn-action btn-wishlist" title="Add to Wishlist" onclick="alert('Wishlist feature coming soon!')">
+                                            <i class="fas fa-star"></i>
+                                        </button>
+                                        <form method="POST" action="{{ url_for('delete_dcf_analysis', id=analysis.id) }}" style="display: inline;">
+                                            <button type="button" class="btn-action btn-delete" title="Delete" onclick="showDeleteModal(this.closest('form'), 'Delete this DCF analysis for {{ analysis.ticker }}?')">
+                                                <i class="fas fa-trash-alt"></i>
+                                            </button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
