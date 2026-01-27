@@ -6,10 +6,6 @@
         </h1>
     </div>
     
-    <div class="user-info">
-        <i class="fas fa-user-circle"></i>
-        <span>Logged in as: <strong>{{ current_user.username }}</strong></span>
-    </div>
     
     <nav class="sidebar-nav">
         <a href="{{ url_for('home') }}" class="nav-link {% if request.endpoint == 'home' %}active{% endif %}">
@@ -41,7 +37,6 @@
     </nav>
     
     <div class="sidebar-footer">
-        <p class="app-version">v1.0.0</p>
-        <p class="app-info">Personal Stock Analysis Tool</p>
+        <p class="app-info">Arash's Stock Analysis Tool</p>
     </div>
 </aside>

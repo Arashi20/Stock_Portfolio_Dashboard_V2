@@ -1,0 +1,382 @@
+{% extends "base.html" %}
+
+{% block title %}DCF Analysis - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="dcf-page">
+    <div class="page-header">
+        <h1 class="dcf-page-title">
+            <i class="fas fa-calculator"></i>
+            DCF Analysis
+        </h1>
+        <p class="page-description">Calculate intrinsic stock value using Discounted Free Cash Flow method</p>
+    </div>
+
+    <div class="dcf-container">
+        <!-- Input Form Section -->
+        <div class="dcf-input-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-edit"></i>
+                    Input Parameters
+                </h2>
+
+                <form id="dcfForm" method="POST" action="{{ url_for('calculate_dcf') }}">
+                    <!-- Ticker Symbol with Real-Time Lookup -->
+                    <div class="form-group">
+                        <label for="ticker">
+                            <i class="fas fa-search"></i>
+                            Ticker Symbol
+                        </label>
+                        <input 
+                            type="text" 
+                            id="ticker" 
+                            name="ticker" 
+                            class="form-control" 
+                            placeholder="e.g., AAPL, MSFT, TSLA, AIR.PA"
+                            required
+                            value="{{ ticker if ticker else '' }}"
+                        >
+                    </div>
+
+                    <!-- Financial Inputs Grid -->
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="free_cash_flow">
+                                <i class="fas fa-money-bill-wave"></i>
+                                Free Cash Flow
+                                <span class="tooltip-icon" data-tooltip="Current/Average annual free cash flow in Millions/Billions">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="free_cash_flow" 
+                                name="free_cash_flow" 
+                                class="form-control" 
+                                placeholder="10000"
+                                required
+                                value="{{ free_cash_flow if free_cash_flow else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="shares_outstanding">
+                                <i class="fas fa-chart-pie"></i>
+                                Shares Outstanding
+                                <span class="tooltip-icon" data-tooltip="Total number of shares issued by the company (in Millions/Billions)">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="shares_outstanding" 
+                                name="shares_outstanding" 
+                                class="form-control" 
+                                placeholder="5000"                               
+                                required
+                                value="{{ shares_outstanding if shares_outstanding else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="growth_rate_5yr">
+                                <i class="fas fa-chart-line"></i>
+                                Growth Rate Years 1-5 (%)
+                                <span class="tooltip-icon" data-tooltip="Expected FCF growth rate for the first 5 years">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="growth_rate_5yr" 
+                                name="growth_rate_5yr" 
+                                class="form-control" 
+                                placeholder="12.0"
+                                step="0.1"
+                                required
+                                value="{{ growth_rate_5yr if growth_rate_5yr else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="growth_rate_6_10yr">
+                                <i class="fas fa-chart-line"></i>
+                                Growth Rate Years 6-10 (%)
+                                <span class="tooltip-icon" data-tooltip="Expected FCF growth rate for years 6-10">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="growth_rate_6_10yr" 
+                                name="growth_rate_6_10yr" 
+                                class="form-control" 
+                                placeholder="10.0"
+                                step="0.1"
+                                required
+                                value="{{ growth_rate_6_10yr if growth_rate_6_10yr else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="terminal_growth_rate">
+                                <i class="fas fa-infinity"></i>
+                                Terminal Growth Rate (%)
+                                <span class="tooltip-icon" data-tooltip="Perpetual growth rate after year 10">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="terminal_growth_rate" 
+                                name="terminal_growth_rate" 
+                                class="form-control" 
+                                placeholder="2.0"
+                                step="0.1"
+                                required
+                                value="{{ terminal_growth_rate if terminal_growth_rate else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="discount_rate">
+                                <i class="fas fa-percentage"></i>
+                                Discount Rate (%)
+                                <span class="tooltip-icon" data-tooltip="Required rate of return / WACC">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="discount_rate" 
+                                name="discount_rate" 
+                                class="form-control" 
+                                placeholder="12.0"
+                                step="0.1"
+                                required
+                                value="{{ discount_rate if discount_rate else '' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="share_dilution">
+                                <i class="fas fa-exchange-alt"></i>
+                                Share Dilution/Buyback (%)
+                                <span class="tooltip-icon" data-tooltip="Annual share change: positive for dilution, negative for buybacks">?</span>
+                            </label>
+                            <input 
+                                type="number" 
+                                id="share_dilution" 
+                                name="share_dilution" 
+                                class="form-control" 
+                                placeholder="0.0"
+                                step="0.1"
+                                required
+                                value="{{ share_dilution if share_dilution else '0' }}"
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currency">
+                                <i class="fas fa-dollar-sign"></i>
+                                Currency Symbol
+                                <span class="tooltip-icon" data-tooltip="Select the currency symbol for this stock">?</span>
+                            </label>
+                            <select 
+                                id="currency" 
+                                name="currency" 
+                                class="form-control"
+                                required
+                            >
+                                <option value="$" {% if currency == '$' or not currency %}selected{% endif %}>$ - US Dollar</option>
+                                <option value="€" {% if currency == '€' %}selected{% endif %}>€ - Euro</option>
+                                <option value="£" {% if currency == '£' %}selected{% endif %}>£ - British Pound</option>
+                                <option value="¥" {% if currency == '¥' %}selected{% endif %}>¥ - Japanese Yen / Chinese Yuan</option>
+                                <option value="CHF " {% if currency == 'CHF ' %}selected{% endif %}>CHF - Swiss Franc</option>
+                                <option value="C$" {% if currency == 'C$' %}selected{% endif %}>C$ - Canadian Dollar</option>
+                                <option value="A$" {% if currency == 'A$' %}selected{% endif %}>A$ - Australian Dollar</option>
+                                <option value="₹" {% if currency == '₹' %}selected{% endif %}>₹ - Indian Rupee</option>
+                                <option value="R$" {% if currency == 'R$' %}selected{% endif %}>R$ - Brazilian Real</option>
+                                <option value="₩" {% if currency == '₩' %}selected{% endif %}>₩ - South Korean Won</option>
+                                <option value="kr " {% if currency == 'kr ' %}selected{% endif %}>kr - Swedish/Norwegian/Danish Krona</option>
+                                <option value="HK$" {% if currency == 'HK$' %}selected{% endif %}>HK$ - Hong Kong Dollar</option>
+                                <option value="S$" {% if currency == 'S$' %}selected{% endif %}>S$ - Singapore Dollar</option>
+                                <option value="NZ$" {% if currency == 'NZ$' %}selected{% endif %}>NZ$ - New Zealand Dollar</option>
+                                <option value="R" {% if currency == 'R' %}selected{% endif %}>R - South African Rand</option>
+                                <option value="₪" {% if currency == '₪' %}selected{% endif %}>₪ - Israeli Shekel</option>
+                                <option value="₽" {% if currency == '₽' %}selected{% endif %}>₽ - Russian Ruble</option>
+                                <option value="Mex$" {% if currency == 'Mex$' %}selected{% endif %}>Mex$ - Mexican Peso</option>
+                                <option value="₺" {% if currency == '₺' %}selected{% endif %}>₺ - Turkish Lira</option>
+                                <option value="zł" {% if currency == 'zł' %}selected{% endif %}>zł - Polish Zloty</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Action Buttons -->
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-calculator"></i>
+                            Calculate Intrinsic Value
+                        </button>
+                        <button type="button" id="resetBtn" class="btn btn-secondary btn-large">
+                            <i class="fas fa-redo"></i>
+                            Reset Form
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Results Section -->
+        {% if result %}
+        <div class="dcf-results-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-chart-bar"></i>
+                    Analysis Results
+                </h2>
+
+                <!-- Main Result Display -->
+                <div class="result-highlight">
+                    <div class="result-label">Intrinsic Value Per Share</div>
+                    <div class="result-value">{{ result.currency }}{{ "%.2f"|format(result.intrinsic_value) }}</div>
+                    
+                    <div class="price-comparison">
+                        {% if result.current_price %}
+                        <div class="comparison-item">
+                            <span class="label">Current Market Price:</span>
+                            <span class="value">{{ result.currency }}{{ "%.2f"|format(result.current_price) }}</span>
+                        </div>
+                        <div class="comparison-item {% if result.intrinsic_value > result.current_price %}positive{% else %}negative{% endif %}">
+                            <span class="label">Margin of Safety:</span>
+                            <span class="value">{{ "%.1f"|format(((result.intrinsic_value - result.current_price) / result.current_price * 100)) }}%</span>
+                        </div>
+                        {% else %}
+                        <div class="comparison-item">
+                            <span class="label">Current Market Price:</span>
+                            <span class="value" style="opacity: 0.7;">Not Available</span>
+                        </div>
+                        <div class="comparison-item">
+                            <span class="label">Margin of Safety:</span>
+                            <span class="value" style="opacity: 0.7;">-</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Input Summary -->
+                <div class="input-summary">
+                    <h3>Input Summary</h3>
+                    <div class="summary-grid">
+                        <div class="summary-item">
+                            <span class="label">Ticker:</span>
+                            <span class="value">{{ result.ticker }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Free Cash Flow:</span>
+                            <span class="value">{{ "{:,.0f}".format(result.free_cash_flow) }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Shares Outstanding:</span>
+                            <span class="value">{{ "{:,.0f}".format(result.shares_outstanding) }}</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Growth Rate (1-5 yrs):</span>
+                            <span class="value">{{ result.growth_rate_5yr }}%</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Growth Rate (6-10 yrs):</span>
+                            <span class="value">{{ result.growth_rate_6_10yr }}%</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Terminal Growth:</span>
+                            <span class="value">{{ result.terminal_growth_rate }}%</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Discount Rate:</span>
+                            <span class="value">{{ result.discount_rate }}%</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="label">Share Change:</span>
+                            <span class="value">{{ result.share_dilution }}%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save & Actions -->
+                <div class="result-actions">
+                    <form method="POST" action="{{ url_for('save_dcf_analysis') }}" style="display: inline;">
+                        <input type="hidden" name="ticker" value="{{ result.ticker }}">
+                        <input type="hidden" name="free_cash_flow" value="{{ result.free_cash_flow }}">
+                        <input type="hidden" name="growth_rate_5yr" value="{{ result.growth_rate_5yr }}">
+                        <input type="hidden" name="growth_rate_6_10yr" value="{{ result.growth_rate_6_10yr }}">
+                        <input type="hidden" name="terminal_growth_rate" value="{{ result.terminal_growth_rate }}">
+                        <input type="hidden" name="discount_rate" value="{{ result.discount_rate }}">
+                        <input type="hidden" name="shares_outstanding" value="{{ result.shares_outstanding }}">
+                        <input type="hidden" name="share_dilution" value="{{ result.share_dilution }}">
+                        <input type="hidden" name="intrinsic_value" value="{{ result.intrinsic_value }}">
+                        <input type="hidden" name="currency" value="{{ result.currency }}">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fas fa-save"></i>
+                            Save Analysis
+                        </button>
+                    </form>
+                    <a href="{{ url_for('reports') }}?ticker={{ result.ticker }}" class="btn btn-secondary">
+                        <i class="fas fa-file-alt"></i>
+                        Create Report
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Saved Analyses Table -->
+        {% if saved_analyses %}
+        <div class="saved-analyses-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-history"></i>
+                    Saved DCF Analyses ({{ saved_analyses|length }})
+                </h2>
+                <div class="table-responsive">
+                    <table class="analyses-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Ticker</th>
+                                <th>FCF</th>
+                                <th>Shares</th>
+                                <th>Growth 1-5</th>
+                                <th>Growth 6-10</th>
+                                <th>Terminal</th>
+                                <th>Discount</th>
+                                <th>Dilution</th>
+                                <th>Intrinsic Value</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for analysis in saved_analyses %}
+                            <tr>
+                                <td>{{ analysis.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
+                                <td><strong>{{ analysis.ticker }}</strong></td>
+                                <td>{{ "{:,.0f}".format(analysis.free_cash_flow) }}</td>
+                                <td>{{ "{:,.0f}".format(analysis.shares_outstanding) }}</td>
+                                <td>{{ analysis.growth_rate_5yr }}%</td>
+                                <td>{{ analysis.growth_rate_6_10yr }}%</td>
+                                <td>{{ analysis.terminal_growth_rate }}%</td>
+                                <td>{{ analysis.discount_rate }}%</td>
+                                <td>{{ analysis.share_dilution }}%</td>
+                                <td class="intrinsic-value">{{ analysis.currency }}{{ "%.2f"|format(analysis.intrinsic_value) }}</td>
+                                <td>
+                                    <form method="POST" action="{{ url_for('delete_dcf_analysis', id=analysis.id) }}" style="display: inline;" onsubmit="return confirm('Delete this analysis?');">
+                                        <button type="submit" class="btn-delete">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='dcf.js') }}"></script>
+{% endblock %}

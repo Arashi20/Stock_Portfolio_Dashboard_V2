@@ -84,4 +84,5 @@ instance/
 *.db
 
 # Github instructions
-general.instructions.md
+.github/instructions/
+

@@ -2,7 +2,13 @@ from flask import Flask, render_template, request, redirect, url_for, flash, jso
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 from datetime import datetime, timedelta
+from dotenv import load_dotenv
 import os
+import yfinance as yf
+from dcf.dcf_default import dcf_valuation_advanced
+
+# Load environment variables from .env file
+load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -13,8 +19,8 @@ app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
 
 # Hardcoded credentials (for development only)
-HARDCODED_USERNAME = 'admin'
-HARDCODED_PASSWORD = 'stockanalysis2026'
+HARDCODED_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
+HARDCODED_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'stockanalysis2026')
 
 # Initialize database
 db = SQLAlchemy(app)
@@ -41,9 +47,9 @@ def load_user(user_id):
 # Session management - 15 minute timeout
 @app.before_request
 def before_request():
-    session.permanent = True
-    app.permanent_session_lifetime = timedelta(minutes=15)
-    session.modified = True
+    if current_user.is_authenticated:
+        session.permanent = True
+        app.permanent_session_lifetime = timedelta(minutes=15)
 
 # Database Models
 class DCFAnalysis(db.Model):
@@ -57,6 +63,7 @@ class DCFAnalysis(db.Model):
     shares_outstanding = db.Column(db.Float, nullable=False)
     share_dilution = db.Column(db.Float, nullable=False)
     intrinsic_value = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(10), default='$')
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -76,6 +83,7 @@ class Wishlist(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(10), nullable=False, unique=True)
     target_price = db.Column(db.Float, nullable=False)
+    currency = db.Column(db.String(10), default='$')
     date_added = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -95,8 +103,10 @@ def login():
         
         if username == HARDCODED_USERNAME and password == HARDCODED_PASSWORD:
             user = User(1, username)
-            login_user(user, remember=remember)
-            session.permanent = True  # Enable session timeout
+            # Remember me extends to 30 days, otherwise 15 minutes
+            duration = timedelta(days=30) if remember else timedelta(minutes=15)
+            login_user(user, remember=remember, duration=duration)
+            session.permanent = True
             flash('Login successful! Welcome back.', 'success')
             next_page = request.args.get('next')
             return redirect(next_page) if next_page else redirect(url_for('home'))
@@ -123,7 +133,166 @@ def home():
 @login_required
 def dcf():
     """DCF analysis page"""
-    return render_template('dcf.html')
+    # Fetch all saved analyses ordered by most recent first
+    saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+    return render_template('dcf.html', saved_analyses=saved_analyses)
+
+@app.route('/calculate-dcf', methods=['POST'])
+@login_required
+def calculate_dcf():
+    """Calculate DCF intrinsic value"""
+    try:
+        # Get form data
+        ticker = request.form.get('ticker', '').upper().strip()
+        print(f"DEBUG: Received ticker from form: '{request.form.get('ticker')}'")
+        print(f"DEBUG: Processed ticker: '{ticker}'")
+        free_cash_flow = float(request.form.get('free_cash_flow'))
+        growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
+        growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
+        terminal_growth_rate = float(request.form.get('terminal_growth_rate'))
+        discount_rate = float(request.form.get('discount_rate'))
+        shares_outstanding = float(request.form.get('shares_outstanding'))
+        share_dilution = float(request.form.get('share_dilution'))
+        currency = request.form.get('currency', '$')  # Get manual currency input
+        
+        # Calculate intrinsic value using DCF model
+        intrinsic_value = dcf_valuation_advanced(
+            initial_fcf=free_cash_flow,
+            growth_rate_1_5=growth_rate_5yr,
+            growth_rate_6_10=growth_rate_6_10yr,
+            discount_rate=discount_rate,
+            terminal_growth_rate=terminal_growth_rate,
+            shares_outstanding=shares_outstanding,
+            share_change_rate=share_dilution
+        )
+        
+        # Get current stock price from Yahoo Finance (using method from working project)
+        current_price = None
+        try:
+            stock = yf.Ticker(ticker)
+            info = stock.info
+            current_price = info.get("regularMarketPrice")
+            if current_price:
+                print(f"Found price for {ticker}: {current_price}")
+        except Exception as e:
+            print(f"Error fetching price for {ticker}: {e}")
+            pass
+        
+        # Prepare result data
+        result = {
+            'ticker': ticker,
+            'free_cash_flow': free_cash_flow,
+            'growth_rate_5yr': growth_rate_5yr,
+            'growth_rate_6_10yr': growth_rate_6_10yr,
+            'terminal_growth_rate': terminal_growth_rate,
+            'discount_rate': discount_rate,
+            'shares_outstanding': shares_outstanding,
+            'share_dilution': share_dilution,
+            'intrinsic_value': intrinsic_value,
+            'current_price': current_price,
+            'currency': currency,        
+            'intrinsic_value': intrinsic_value,
+            'current_price': current_price
+        }
+        
+        flash(f'DCF calculation completed for {ticker}!', 'success')
+        return render_template('dcf.html', result=result, **request.form)
+        
+    except ValueError as e:
+        flash(f'Calculation error: {str(e)}', 'danger')
+        return render_template('dcf.html', **request.form)
+    except Exception as e:
+        flash(f'An error occurred: {str(e)}', 'danger')
+        return render_template('dcf.html', **request.form)
+
+@app.route('/save-dcf-analysis', methods=['POST'])
+@login_required
+def save_dcf_analysis():
+    """Save DCF analysis to database"""
+    try:
+        analysis = DCFAnalysis(
+            ticker=request.form.get('ticker'),
+            free_cash_flow=float(request.form.get('free_cash_flow')),
+            growth_rate_5yr=float(request.form.get('growth_rate_5yr')),
+            growth_rate_6_10yr=float(request.form.get('growth_rate_6_10yr')),
+            terminal_growth_rate=float(request.form.get('terminal_growth_rate')),
+            discount_rate=float(request.form.get('discount_rate')),
+            shares_outstanding=float(request.form.get('shares_outstanding')),
+            share_dilution=float(request.form.get('share_dilution')),
+            intrinsic_value=float(request.form.get('intrinsic_value')),
+            currency=request.form.get('currency', '$')
+        )
+        db.session.add(analysis)
+        db.session.commit()
+        flash(f'DCF analysis for {analysis.ticker} saved successfully!', 'success')
+    except Exception as e:
+        flash(f'Error saving analysis: {str(e)}', 'danger')
+    
+    return redirect(url_for('dcf'))
+
+@app.route('/delete-dcf-analysis/<int:id>', methods=['POST'])
+@login_required
+def delete_dcf_analysis(id):
+    """Delete a saved DCF analysis"""
+    try:
+        analysis = DCFAnalysis.query.get_or_404(id)
+        ticker = analysis.ticker  # Save for flash message
+        db.session.delete(analysis)
+        db.session.commit()
+        flash(f'Analysis for {ticker} deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting analysis: {str(e)}', 'danger')
+    
+    return redirect(url_for('dcf'))
+
+@app.route('/api/stock-lookup/<ticker>')
+@login_required
+def stock_lookup(ticker):
+    """API endpoint to search saved DCF analyses for a ticker"""
+    try:
+        # Search database for saved DCF analyses for this ticker
+        analyses = DCFAnalysis.query.filter_by(ticker=ticker.upper()).order_by(DCFAnalysis.date_created.desc()).all()
+        
+        if not analyses:
+            return jsonify({'error': f'No saved analyses found for {ticker}'}), 404
+        
+        # Return list of saved analyses
+        data = {
+            'ticker': ticker.upper(),
+            'count': len(analyses),
+            'analyses': [
+                {
+                    'id': analysis.id,
+                    'date': analysis.date_created.strftime('%Y-%m-%d %H:%M'),
+                    'free_cash_flow': analysis.free_cash_flow,
+                    'shares_outstanding': analysis.shares_outstanding,
+                    'growth_rate_5yr': analysis.growth_rate_5yr,
+                    'growth_rate_6_10yr': analysis.growth_rate_6_10yr,
+                    'terminal_growth_rate': analysis.terminal_growth_rate,
+                    'discount_rate': analysis.discount_rate,
+                    'share_dilution': analysis.share_dilution,
+                    'intrinsic_value': analysis.intrinsic_value,
+                    'currency': analysis.currency
+                }
+                for analysis in analyses
+            ]
+        }
+        
+        return jsonify(data)
+    except Exception as e:
+        return jsonify({'error': f'Error searching for {ticker}: {str(e)}'}), 500
+
+def format_market_cap(value):
+    """Format market cap to readable string"""
+    if value >= 1e12:
+        return f"{value/1e12:.2f}T"
+    elif value >= 1e9:
+        return f"{value/1e9:.2f}B"
+    elif value >= 1e6:
+        return f"{value/1e6:.2f}M"
+    else:
+        return f"{value:,.0f}"
 
 @app.route('/reports')
 @login_required

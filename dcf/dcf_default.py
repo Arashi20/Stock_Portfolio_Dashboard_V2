@@ -36,8 +36,8 @@ def dcf_valuation_advanced(
     current_fcf = initial_fcf
     current_shares = shares_outstanding
 
-    print(f"{'Year':<5} | {'Total FCF':<15} | {'Shares':<15} | {'FCF/Share':<10}")
-    print("-" * 55)
+    # print(f"{'Year':<5} | {'Total FCF':<15} | {'Shares':<15} | {'FCF/Share':<10}")
+    # print("-" * 55)
 
     for year in range(1, 11):
         # A. Grow the Total Free Cash Flow
