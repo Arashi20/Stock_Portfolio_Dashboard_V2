@@ -1758,3 +1758,263 @@ body {
         font-size: 1.25rem;
     }
 }
+
+/* ==========================================
+   Reports Page Styles
+   ========================================== */
+.reports-page {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.reports-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.reports-page-title i {
+    color: var(--primary-color);
+}
+
+.reports-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow-x: visible;
+}
+
+.reports-input-section {
+    animation: slideIn 0.5s ease-out;
+}
+
+.reports-table-section {
+    animation: slideIn 0.7s ease-out;
+}
+
+.report-textarea {
+    min-height: 200px;
+    font-family: inherit;
+    resize: vertical;
+}
+
+.reports-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 900px;
+}
+
+.reports-table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.reports-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.reports-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.reports-table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.reports-table td {
+    padding: 1rem;
+    font-size: 0.9375rem;
+}
+
+.reports-table td strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+.btn-view {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.btn-view:hover {
+    background-color: var(--primary-hover);
+}
+
+.btn-edit {
+    background-color: var(--warning-color);
+    color: white;
+}
+
+.btn-edit:hover {
+    background-color: #d97706;
+}
+
+/* Report View Page */
+.report-view-page,
+.report-edit-page {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.report-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.report-page-title i {
+    color: var(--primary-color);
+}
+
+.report-view-container,
+.report-edit-container {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.report-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 2rem;
+    padding-bottom: 2rem;
+    border-bottom: 2px solid var(--border-color);
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+.report-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+}
+
+.meta-item i {
+    color: var(--primary-color);
+    width: 20px;
+}
+
+.meta-item strong {
+    color: var(--text-primary);
+}
+
+.report-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.report-content {
+    margin-top: 2rem;
+}
+
+.content-heading {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.content-heading i {
+    color: var(--primary-color);
+}
+
+.report-notes {
+    background-color: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 8px;
+    border-left: 4px solid var(--primary-color);
+    line-height: 1.8;
+    color: var(--text-primary);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+/* Responsive Reports Styles */
+@media (max-width: 768px) {
+    .reports-page-title,
+    .report-page-title {
+        font-size: 1.5rem;
+        justify-content: center;
+    }
+
+    .reports-container {
+        overflow-x: visible;
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .reports-table {
+        font-size: 0.875rem;
+    }
+
+    .reports-table th,
+    .reports-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .btn-action {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .report-header {
+        flex-direction: column;
+    }
+
+    .report-actions {
+        width: 100%;
+    }
+
+    .report-actions .btn {
+        flex: 1;
+    }
+}
+
+@media (max-width: 480px) {
+    .reports-page-title,
+    .report-page-title {
+        font-size: 1.25rem;
+    }
+
+    .reports-table th,
+    .reports-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8125rem;
+    }
+
+    .report-notes {
+        padding: 1rem;
+        font-size: 0.9375rem;
+    }
+}

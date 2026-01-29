@@ -134,7 +134,7 @@
                                 <td>{{ item.date_added.strftime('%Y-%m-%d') }}</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <a href="{{ url_for('reports') }}" class="btn-action btn-report" title="View Report">
+                                        <a href="{{ url_for('reports') }}?ticker={{ item.ticker }}&target_price={{ item.target_price }}&currency={{ item.currency }}" class="btn-action btn-report" title="Create Report">
                                             <i class="fas fa-file-alt"></i>
                                         </a>
                                         <form method="POST" action="{{ url_for('delete_wishlist', id=item.id) }}" style="display: inline;">
@@ -165,4 +165,28 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Pre-fill form from URL parameters
+document.addEventListener('DOMContentLoaded', function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticker = urlParams.get('ticker');
+    const targetPrice = urlParams.get('target_price');
+    const currency = urlParams.get('currency');
+    
+    if (ticker) {
+        document.getElementById('ticker').value = ticker;
+    }
+    
+    if (targetPrice) {
+        document.getElementById('target_price').value = parseFloat(targetPrice).toFixed(2);
+    }
+    
+    if (currency) {
+        document.getElementById('currency').value = currency;
+    }
+});
+</script>
 {% endblock %}

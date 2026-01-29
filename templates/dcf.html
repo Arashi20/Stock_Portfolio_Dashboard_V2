@@ -338,7 +338,7 @@
                                 <th>Discount</th>
                                 <th>Dilution</th>
                                 <th>Intrinsic Value</th>
-                                <th>Action</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -356,12 +356,12 @@
                                 <td class="intrinsic-value">{{ analysis.currency }}{{ "%.2f"|format(analysis.intrinsic_value) }}</td>
                                 <td>
                                     <div class="action-buttons">
-                                        <button class="btn-action btn-report" title="Create Report" onclick="alert('Report feature coming soon!')">
+                                        <a href="{{ url_for('reports') }}?ticker={{ analysis.ticker }}&fcf={{ analysis.free_cash_flow }}&shares={{ analysis.shares_outstanding }}&growth_5yr={{ analysis.growth_rate_5yr }}&growth_6_10yr={{ analysis.growth_rate_6_10yr }}&terminal={{ analysis.terminal_growth_rate }}&discount={{ analysis.discount_rate }}&dilution={{ analysis.share_dilution }}&intrinsic={{ analysis.intrinsic_value }}&currency={{ analysis.currency }}" class="btn-action btn-report" title="Create Report">
                                             <i class="fas fa-file-alt"></i>
-                                        </button>
-                                        <button class="btn-action btn-wishlist" title="Add to Wishlist" onclick="alert('Wishlist feature coming soon!')">
+                                        </a>
+                                        <a href="{{ url_for('wishlist') }}?ticker={{ analysis.ticker }}&target_price={{ analysis.intrinsic_value }}&currency={{ analysis.currency }}" class="btn-action btn-wishlist" title="Add to Wishlist">
                                             <i class="fas fa-star"></i>
-                                        </button>
+                                        </a>
                                         <form method="POST" action="{{ url_for('delete_dcf_analysis', id=analysis.id) }}" style="display: inline;">
                                             <button type="button" class="btn-action btn-delete" title="Delete" onclick="showDeleteModal(this.closest('form'), 'Delete this DCF analysis for {{ analysis.ticker }}?')">
                                                 <i class="fas fa-trash-alt"></i>
@@ -373,6 +373,16 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="section-card">
+                <div class="empty-state-content">
+                    <i class="fas fa-calculator empty-state-icon"></i>
+                    <h3>No saved analyses yet</h3>
+                    <p>Perform your first DCF analysis using the form above and save it for future reference.</p>
                 </div>
             </div>
         </div>

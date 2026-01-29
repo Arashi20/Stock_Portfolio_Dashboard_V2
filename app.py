@@ -72,6 +72,7 @@ class DCFAnalysis(db.Model):
 class Report(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(10), nullable=False)
+    title = db.Column(db.String(200), nullable=False)
     date = db.Column(db.DateTime, nullable=False)
     notes = db.Column(db.Text, nullable=False)
     date_created = db.Column(db.DateTime, default=datetime.utcnow)
@@ -301,6 +302,41 @@ def reports():
     all_reports = Report.query.order_by(Report.date_created.desc()).all()
     return render_template('reports.html', reports=all_reports)
 
+@app.route('/create-report', methods=['POST'])
+@login_required
+def create_report():
+    """Create a new report"""
+    try:
+        ticker = request.form.get('ticker', '').upper().strip()
+        title = request.form.get('title', '').strip()
+        date_str = request.form.get('date')
+        notes = request.form.get('notes', '').strip()
+        
+        if not ticker or not title or not notes:
+            flash('Please fill in all required fields.', 'danger')
+            return redirect(url_for('reports'))
+        
+        # Parse the date
+        report_date = datetime.strptime(date_str, '%Y-%m-%d')
+        
+        # Create new report
+        new_report = Report(
+            ticker=ticker,
+            title=title,
+            date=report_date,
+            notes=notes
+        )
+        db.session.add(new_report)
+        db.session.commit()
+        flash(f'Report for {ticker} created successfully!', 'success')
+    except ValueError as e:
+        flash('Invalid date format.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error creating report: {str(e)}', 'danger')
+    
+    return redirect(url_for('reports'))
+
 @app.route('/report/<int:report_id>')
 @login_required
 def view_report(report_id):
@@ -314,13 +350,34 @@ def edit_report(report_id):
     """Edit individual report"""
     report = Report.query.get_or_404(report_id)
     if request.method == 'POST':
-        report.ticker = request.form['ticker']
-        report.date = datetime.strptime(request.form['date'], '%Y-%m-%d')
-        report.notes = request.form['notes']
-        db.session.commit()
-        flash('Report updated successfully!', 'success')
-        return redirect(url_for('view_report', report_id=report.id))
+        try:
+            report.ticker = request.form.get('ticker', '').upper().strip()
+            report.title = request.form.get('title', '').strip()
+            report.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
+            report.notes = request.form.get('notes', '').strip()
+            db.session.commit()
+            flash('Report updated successfully!', 'success')
+            return redirect(url_for('view_report', report_id=report.id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error updating report: {str(e)}', 'danger')
     return render_template('edit_report.html', report=report)
+
+@app.route('/delete-report/<int:report_id>', methods=['POST'])
+@login_required
+def delete_report(report_id):
+    """Delete a report"""
+    try:
+        report = Report.query.get_or_404(report_id)
+        ticker = report.ticker
+        db.session.delete(report)
+        db.session.commit()
+        flash(f'Report for {ticker} deleted successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error deleting report: {str(e)}', 'danger')
+    
+    return redirect(url_for('reports'))
 
 
 @app.route('/wishlist')

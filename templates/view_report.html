@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}{{ report.ticker }} Report - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="report-view-page">
+    <div class="page-header">
+        <h1 class="report-page-title">
+            <i class="fas fa-file-alt"></i>
+            {{ report.ticker }} - {{ report.title }}
+        </h1>
+        <p class="page-description">Report Date: {{ report.date.strftime('%B %d, %Y') }}</p>
+    </div>
+
+    <div class="report-view-container">
+        <div class="section-card">
+            <!-- Report Header -->
+            <div class="report-header">
+                <div class="report-meta">
+                    <span class="meta-item">
+                        <i class="fas fa-tag"></i>
+                        <strong>Ticker:</strong> {{ report.ticker }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-calendar"></i>
+                        <strong>Report Date:</strong> {{ report.date.strftime('%Y-%m-%d') }}
+                    </span>
+                    <span class="meta-item">
+                        <i class="fas fa-clock"></i>
+                        <strong>Created:</strong> {{ report.date_created.strftime('%Y-%m-%d %H:%M') }}
+                    </span>
+                </div>
+                
+                <div class="report-actions">
+                    <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn btn-secondary">
+                        <i class="fas fa-edit"></i>
+                        Edit Report
+                    </a>
+                    <a href="{{ url_for('reports') }}" class="btn btn-primary">
+                        <i class="fas fa-arrow-left"></i>
+                        Back to Reports
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report Content -->
+            <div class="report-content">
+                <h3 class="content-heading">
+                    <i class="fas fa-align-left"></i>
+                    Analysis & Notes
+                </h3>
+                <div class="report-notes">
+                    {{ report.notes|replace('\n', '<br>')|safe }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

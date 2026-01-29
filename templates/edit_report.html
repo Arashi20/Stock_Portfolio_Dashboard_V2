@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Report - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="report-edit-page">
+    <div class="page-header">
+        <h1 class="report-page-title">
+            <i class="fas fa-edit"></i>
+            Edit Report - {{ report.ticker }}
+        </h1>
+        <p class="page-description">Update your stock analysis report</p>
+    </div>
+
+    <div class="report-edit-container">
+        <div class="section-card">
+            <form method="POST" action="{{ url_for('edit_report', report_id=report.id) }}">
+                <div class="input-grid">
+                    <div class="form-group">
+                        <label for="ticker">
+                            <i class="fas fa-search"></i>
+                            Ticker Symbol
+                        </label>
+                        <input 
+                            type="text" 
+                            id="ticker" 
+                            name="ticker" 
+                            class="form-control" 
+                            value="{{ report.ticker }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="title">
+                            <i class="fas fa-heading"></i>
+                            Report Title
+                        </label>
+                        <input 
+                            type="text" 
+                            id="title" 
+                            name="title" 
+                            class="form-control" 
+                            value="{{ report.title }}"
+                            required
+                        >
+                    </div>
+
+                    <div class="form-group">
+                        <label for="date">
+                            <i class="fas fa-calendar"></i>
+                            Report Date
+                        </label>
+                        <input 
+                            type="date" 
+                            id="date" 
+                            name="date" 
+                            class="form-control" 
+                            value="{{ report.date.strftime('%Y-%m-%d') }}"
+                            required
+                        >
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="notes">
+                        <i class="fas fa-edit"></i>
+                        Analysis & Notes
+                    </label>
+                    <textarea 
+                        id="notes" 
+                        name="notes" 
+                        class="form-control report-textarea" 
+                        rows="12"
+                        required
+                    >{{ report.notes }}</textarea>
+                </div>
+
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary btn-large">
+                        <i class="fas fa-save"></i>
+                        Save Changes
+                    </button>
+                    <a href="{{ url_for('view_report', report_id=report.id) }}" class="btn btn-secondary btn-large">
+                        <i class="fas fa-times"></i>
+                        Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

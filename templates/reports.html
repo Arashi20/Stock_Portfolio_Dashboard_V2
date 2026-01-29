@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="reports-page">
+    <div class="page-header">
+        <h1 class="reports-page-title">
+            <i class="fas fa-file-alt"></i>
+            Stock Reports
+        </h1>
+        <p class="page-description">Create and manage comprehensive stock analysis reports</p>
+    </div>
+
+    <div class="reports-container">
+        <!-- Create Report Form -->
+        <div class="reports-input-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-plus-circle"></i>
+                    Create New Report
+                </h2>
+
+                <form id="reportForm" method="POST" action="{{ url_for('create_report') }}">
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="ticker">
+                                <i class="fas fa-search"></i>
+                                Ticker Symbol
+                            </label>
+                            <input 
+                                type="text" 
+                                id="ticker" 
+                                name="ticker" 
+                                class="form-control" 
+                                placeholder="e.g., AAPL, MSFT, TSLA"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="title">
+                                <i class="fas fa-heading"></i>
+                                Report Title
+                            </label>
+                            <input 
+                                type="text" 
+                                id="title" 
+                                name="title" 
+                                class="form-control" 
+                                placeholder="e.g., Q4 2025 Analysis"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="date">
+                                <i class="fas fa-calendar"></i>
+                                Report Date
+                            </label>
+                            <input 
+                                type="date" 
+                                id="date" 
+                                name="date" 
+                                class="form-control" 
+                                value="{{ today }}"
+                                required
+                            >
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="notes">
+                            <i class="fas fa-edit"></i>
+                            Analysis & Notes
+                        </label>
+                        <textarea 
+                            id="notes" 
+                            name="notes" 
+                            class="form-control report-textarea" 
+                            placeholder="Write your comprehensive analysis, insights, and due diligence notes here..."
+                            rows="8"
+                            required
+                        ></textarea>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-save"></i>
+                            Create Report
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Reports Table -->
+        {% if reports %}
+        <div class="reports-table-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-list"></i>
+                    All Reports ({{ reports|length }})
+                </h2>
+                <div class="table-responsive">
+                    <table class="reports-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Title</th>
+                                <th>Date</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for report in reports %}
+                            <tr>
+                                <td><strong>{{ report.ticker }}</strong></td>
+                                <td>{{ report.title }}</td>
+                                <td>{{ report.date.strftime('%Y-%m-%d') }}</td>
+                                <td>{{ report.date_created.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('view_report', report_id=report.id) }}" class="btn-action btn-view" title="View Report">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                        <a href="{{ url_for('edit_report', report_id=report.id) }}" class="btn-action btn-edit" title="Edit Report">
+                                            <i class="fas fa-edit"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('delete_report', report_id=report.id) }}" style="display: inline;">
+                                            <button type="button" class="btn-action btn-delete" title="Delete" onclick="showDeleteModal(this.form, 'Are you sure you wanna delete this report for {{ report.ticker }}?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="section-card">
+                <div class="empty-state-content">
+                    <i class="fas fa-file-alt empty-state-icon"></i>
+                    <h3>No reports yet</h3>
+                    <p>Create your first stock analysis report using the form above.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Set today's date as default and pre-fill from URL parameters
+document.addEventListener('DOMContentLoaded', function() {
+    const dateInput = document.getElementById('date');
+    if (!dateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.value = today;
+    }
+    
+    // Pre-fill form from URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const ticker = urlParams.get('ticker');
+    
+    if (ticker) {
+        document.getElementById('ticker').value = ticker;
+        document.getElementById('title').value = `DCF Analysis - ${ticker}`;
+        
+        // Build analysis summary for notes
+        const fcf = urlParams.get('fcf');
+        const shares = urlParams.get('shares');
+        const growth5 = urlParams.get('growth_5yr');
+        const growth610 = urlParams.get('growth_6_10yr');
+        const terminal = urlParams.get('terminal');
+        const discount = urlParams.get('discount');
+        const dilution = urlParams.get('dilution');
+        const intrinsic = urlParams.get('intrinsic');
+        const targetPrice = urlParams.get('target_price');
+        const currency = urlParams.get('currency') || '$';
+        
+        if (fcf && intrinsic) {
+            const notes = `DCF Analysis Summary for ${ticker}\n\n` +
+                `Intrinsic Value: ${currency}${parseFloat(intrinsic).toFixed(2)} per share\n\n` +
+                `Key Assumptions:\n` +
+                `- Free Cash Flow: ${parseFloat(fcf).toLocaleString()}\n` +
+                `- Shares Outstanding: ${parseFloat(shares).toLocaleString()}\n` +
+                `- Growth Rate (Years 1-5): ${growth5}%\n` +
+                `- Growth Rate (Years 6-10): ${growth610}%\n` +
+                `- Terminal Growth Rate: ${terminal}%\n` +
+                `- Discount Rate: ${discount}%\n` +
+                `- Share Dilution: ${dilution}%\n\n` +
+                `Analysis Notes:\n` +
+                `[Add your detailed analysis, insights, and due diligence notes here...]`;
+            
+            document.getElementById('notes').value = notes;
+        } else if (targetPrice) {
+            // Coming from wishlist - simpler note
+            const notes = `${ticker} Wishlist Analysis\n\n` +
+                `Target Price: ${currency}${parseFloat(targetPrice).toFixed(2)}\n\n` +
+                `Analysis Notes:\n` +
+                `[Add your detailed analysis, insights, and due diligence notes here...]`;
+            
+            document.getElementById('notes').value = notes;
+        }
+    }
+});
+</script>
+
+{% endblock %}
