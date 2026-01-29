@@ -1595,3 +1595,166 @@ body {
 .modal-footer .btn-danger:hover {
     background: #dc2626;
 }
+
+/* ==========================================
+   Wishlist Page Styles
+   ========================================== */
+.wishlist-page {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.wishlist-page-title {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.wishlist-page-title i {
+    color: var(--warning-color);
+}
+
+.wishlist-container {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    overflow-x: visible;
+}
+
+.wishlist-input-section {
+    animation: slideIn 0.5s ease-out;
+}
+
+.wishlist-table-section {
+    animation: slideIn 0.7s ease-out;
+}
+
+.wishlist-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.wishlist-table thead {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+.wishlist-table th {
+    padding: 1rem;
+    text-align: left;
+    font-weight: 600;
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.wishlist-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+
+.wishlist-table tbody tr:hover {
+    background-color: #f1f5f9;
+}
+
+.wishlist-table td {
+    padding: 1rem;
+    font-size: 0.9375rem;
+}
+
+.wishlist-table td strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* Empty State */
+.empty-state {
+    animation: fadeIn 0.5s ease-in;
+}
+
+.empty-state-content {
+    text-align: center;
+    padding: 4rem 2rem;
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--warning-color);
+    opacity: 0.3;
+    margin-bottom: 1.5rem;
+}
+
+.empty-state-content h3 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.empty-state-content p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* Responsive Wishlist Styles */
+@media (max-width: 768px) {
+    .wishlist-page-title {
+        font-size: 1.5rem;
+        justify-content: center;
+    }
+
+    .wishlist-container {
+        overflow-x: visible;
+    }
+
+    .input-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .wishlist-table {
+        font-size: 0.875rem;
+    }
+
+    .wishlist-table th,
+    .wishlist-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .action-buttons {
+        flex-direction: row;
+        gap: 0.5rem;
+    }
+
+    .btn-action {
+        padding: 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .wishlist-page-title {
+        font-size: 1.25rem;
+    }
+
+    .wishlist-table th,
+    .wishlist-table td {
+        padding: 0.5rem 0.25rem;
+        font-size: 0.8125rem;
+    }
+
+    .empty-state-content {
+        padding: 2rem 1rem;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+    }
+
+    .empty-state-content h3 {
+        font-size: 1.25rem;
+    }
+}

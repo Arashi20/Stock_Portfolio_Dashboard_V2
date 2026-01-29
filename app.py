@@ -328,7 +328,71 @@ def edit_report(report_id):
 def wishlist():
     """Wishlist page"""
     wishlist_items = Wishlist.query.order_by(Wishlist.date_added.desc()).all()
+    
+    # Fetch current prices for all wishlist items
+    for item in wishlist_items:
+        try:
+            stock = yf.Ticker(item.ticker)
+            info = stock.info
+            current_price = info.get("regularMarketPrice") or info.get("currentPrice") or info.get("previousClose")
+            item.current_price = current_price
+        except Exception as e:
+            print(f"Error fetching price for {item.ticker}: {e}")
+            item.current_price = None
+    
     return render_template('wishlist.html', wishlist=wishlist_items)
+
+@app.route('/add-to-wishlist', methods=['POST'])
+@login_required
+def add_to_wishlist():
+    """Add a stock to the wishlist"""
+    try:
+        ticker = request.form.get('ticker', '').upper().strip()
+        target_price = float(request.form.get('target_price'))
+        currency = request.form.get('currency', '$')
+        
+        if not ticker:
+            flash('Please enter a ticker symbol.', 'danger')
+            return redirect(url_for('wishlist'))
+        
+        # Check if ticker already exists in wishlist
+        existing = Wishlist.query.filter_by(ticker=ticker).first()
+        if existing:
+            flash(f'{ticker} is already in your wishlist.', 'warning')
+            return redirect(url_for('wishlist'))
+        
+        # Add to wishlist
+        wishlist_item = Wishlist(
+            ticker=ticker,
+            target_price=target_price,
+            currency=currency
+        )
+        db.session.add(wishlist_item)
+        db.session.commit()
+        flash(f'{ticker} added to wishlist successfully!', 'success')
+    except ValueError:
+        flash('Please enter a valid target price.', 'danger')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error adding to wishlist: {str(e)}', 'danger')
+    
+    return redirect(url_for('wishlist'))
+
+@app.route('/delete-wishlist/<int:id>', methods=['POST'])
+@login_required
+def delete_wishlist(id):
+    """Delete a stock from the wishlist"""
+    try:
+        wishlist_item = Wishlist.query.get_or_404(id)
+        ticker = wishlist_item.ticker  # Save for flash message
+        db.session.delete(wishlist_item)
+        db.session.commit()
+        flash(f'{ticker} removed from wishlist successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Error removing from wishlist: {str(e)}', 'danger')
+    
+    return redirect(url_for('wishlist'))
 
 # Initialize database tables
 with app.app_context():

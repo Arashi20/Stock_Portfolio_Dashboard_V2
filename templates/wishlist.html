@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+
+{% block title %}Wishlist - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="wishlist-page">
+    <div class="page-header">
+        <h1 class="wishlist-page-title">
+            <i class="fas fa-star"></i>
+            Stock Wishlist
+        </h1>
+        <p class="page-description">Track stocks and set target prices for future analysis</p>
+    </div>
+
+    <div class="wishlist-container">
+        <!-- Add to Wishlist Form -->
+        <div class="wishlist-input-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-plus-circle"></i>
+                    Add to Wishlist
+                </h2>
+
+                <form id="wishlistForm" method="POST" action="{{ url_for('add_to_wishlist') }}">
+                    <div class="input-grid">
+                        <div class="form-group">
+                            <label for="ticker">
+                                <i class="fas fa-search"></i>
+                                Ticker Symbol
+                            </label>
+                            <input 
+                                type="text" 
+                                id="ticker" 
+                                name="ticker" 
+                                class="form-control" 
+                                placeholder="e.g., AAPL, MSFT, TSLA"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="target_price">
+                                <i class="fas fa-bullseye"></i>
+                                Target Price
+                            </label>
+                            <input 
+                                type="number" 
+                                id="target_price" 
+                                name="target_price" 
+                                class="form-control" 
+                                placeholder="150.00"
+                                step="0.01"
+                                required
+                            >
+                        </div>
+
+                        <div class="form-group">
+                            <label for="currency">
+                                <i class="fas fa-dollar-sign"></i>
+                                Currency
+                            </label>
+                            <select 
+                                id="currency" 
+                                name="currency" 
+                                class="form-control"
+                                required
+                            >
+                                <option value="$" selected>$ - US Dollar</option>
+                                <option value="€">€ - Euro</option>
+                                <option value="£">£ - British Pound</option>
+                                <option value="¥">¥ - Japanese Yen</option>
+                                <option value="₹">₹ - Indian Rupee</option>
+                                <option value="C$">C$ - Canadian Dollar</option>
+                                <option value="A$">A$ - Australian Dollar</option>
+                                <option value="CHF">CHF - Swiss Franc</option>
+                                <option value="CNY">CNY - Chinese Yuan</option>
+                                <option value="SEK">SEK - Swedish Krona</option>
+                                <option value="NZD">NZD - New Zealand Dollar</option>
+                                <option value="MXN">MXN - Mexican Peso</option>
+                                <option value="SGD">SGD - Singapore Dollar</option>
+                                <option value="HKD">HKD - Hong Kong Dollar</option>
+                                <option value="NOK">NOK - Norwegian Krone</option>
+                                <option value="KRW">KRW - South Korean Won</option>
+                                <option value="TRY">TRY - Turkish Lira</option>
+                                <option value="RUB">RUB - Russian Ruble</option>
+                                <option value="BRL">BRL - Brazilian Real</option>
+                                <option value="ZAR">ZAR - South African Rand</option>
+                                <option value="SAR">SAR - Saudi Riyal</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary btn-large">
+                            <i class="fas fa-plus"></i>
+                            Add to Wishlist
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Wishlist Table -->
+        {% if wishlist %}
+        <div class="wishlist-table-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-list"></i>
+                    Your Wishlist ({{ wishlist|length }})
+                </h2>
+                <div class="table-responsive">
+                    <table class="wishlist-table">
+                        <thead>
+                            <tr>
+                                <th>Ticker</th>
+                                <th>Target Price</th>
+                                <th>Current Price</th>
+                                <th>Date Added</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in wishlist %}
+                            <tr>
+                                <td><strong>{{ item.ticker }}</strong></td>
+                                <td>{{ item.currency }}{{ "%.2f"|format(item.target_price) }}</td>
+                                <td>
+                                    {% if item.current_price %}
+                                        {{ item.currency }}{{ "%.2f"|format(item.current_price) }}
+                                    {% else %}
+                                        <span style="opacity: 0.6;">Not Available</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.date_added.strftime('%Y-%m-%d') }}</td>
+                                <td>
+                                    <div class="action-buttons">
+                                        <a href="{{ url_for('reports') }}" class="btn-action btn-report" title="View Report">
+                                            <i class="fas fa-file-alt"></i>
+                                        </a>
+                                        <form method="POST" action="{{ url_for('delete_wishlist', id=item.id) }}" style="display: inline;">
+                                            <button type="button" class="btn-action btn-delete" title="Delete" onclick="showDeleteModal(this.form, 'Are you sure you wanna delete {{ item.ticker }} from your wishlist?')">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="section-card">
+                <div class="empty-state-content">
+                    <i class="fas fa-star empty-state-icon"></i>
+                    <h3>Your wishlist is empty</h3>
+                    <p>Add stocks you want to track and set target prices for future analysis.</p>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}
