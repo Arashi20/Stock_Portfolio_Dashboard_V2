@@ -1251,7 +1251,7 @@ body {
 
 .analyses-table {
     width: 100%;
-    min-width: 1000px; /* Minimum width to prevent column crushing */
+    min-width: 900px; /* Minimum width to prevent column crushing */
     border-collapse: collapse;
     background: white;
     border-radius: 8px;
