@@ -231,8 +231,18 @@
             fetch('{{ url_for("home") }}', { 
                 method: 'GET',
                 credentials: 'same-origin'
-            }).catch(function(err) {
+            })
+            .then(function(response) {
+                // Check if session is still valid
+                if (response.status === 401 || response.redirected && response.url.includes('login')) {
+                    // Session expired, redirect to login
+                    window.location.href = '{{ url_for("login") }}';
+                }
+            })
+            .catch(function(err) {
                 console.log('Error refreshing session:', err);
+                // On error, redirect to login to be safe
+                window.location.href = '{{ url_for("login") }}';
             });
         }
 
@@ -280,6 +290,7 @@
             inactivityModal.addEventListener('click', function(e) {
                 if (e.target === this) {
                     // Don't allow closing by clicking backdrop
+                    e.preventDefault();
                     e.stopPropagation();
                 }
             });
