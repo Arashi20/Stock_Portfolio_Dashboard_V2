@@ -7,6 +7,7 @@ import os
 import yfinance as yf
 import requests
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 from dcf.dcf_default import dcf_valuation_advanced
 
 # Load environment variables from .env file
@@ -64,14 +65,15 @@ def sanitize_html(html_content):
     allowed_attributes = {
         '*': ['style'],  # Allow style attribute for alignment
     }
-    allowed_styles = ['text-align']
+    # Create CSS sanitizer for bleach 6.x
+    css_sanitizer = CSSSanitizer(allowed_css_properties=['text-align'])
     
     # Clean the HTML
     cleaned_html = bleach.clean(
         html_content,
         tags=allowed_tags,
         attributes=allowed_attributes,
-        styles=allowed_styles,
+        css_sanitizer=css_sanitizer,
         strip=True
     )
     return cleaned_html
