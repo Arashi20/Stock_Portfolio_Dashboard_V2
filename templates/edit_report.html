@@ -67,12 +67,55 @@
                         <i class="fas fa-edit"></i>
                         Analysis & Notes
                     </label>
+                    <div class="rich-text-editor">
+                        <div class="editor-toolbar">
+                            <button type="button" class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)">
+                                <i class="fas fa-bold"></i>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)">
+                                <i class="fas fa-italic"></i>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)">
+                                <i class="fas fa-underline"></i>
+                            </button>
+                            <span class="toolbar-separator"></span>
+                            <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="h2" title="Heading 2">
+                                <i class="fas fa-heading"></i> 2
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="h3" title="Heading 3">
+                                <i class="fas fa-heading"></i> 3
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="p" title="Paragraph">
+                                <i class="fas fa-paragraph"></i>
+                            </button>
+                            <span class="toolbar-separator"></span>
+                            <button type="button" class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">
+                                <i class="fas fa-list-ul"></i>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">
+                                <i class="fas fa-list-ol"></i>
+                            </button>
+                            <span class="toolbar-separator"></span>
+                            <button type="button" class="toolbar-btn" data-command="justifyLeft" title="Align Left">
+                                <i class="fas fa-align-left"></i>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="justifyCenter" title="Align Center">
+                                <i class="fas fa-align-center"></i>
+                            </button>
+                            <button type="button" class="toolbar-btn" data-command="justifyRight" title="Align Right">
+                                <i class="fas fa-align-right"></i>
+                            </button>
+                            <span class="toolbar-separator"></span>
+                            <button type="button" class="toolbar-btn" data-command="removeFormat" title="Clear Formatting">
+                                <i class="fas fa-eraser"></i>
+                            </button>
+                        </div>
+                        <div id="editor-content" class="editor-content" contenteditable="true"></div>
+                    </div>
                     <textarea 
                         id="notes" 
                         name="notes" 
-                        class="form-control report-textarea" 
-                        rows="12"
-                        required
+                        style="display: none;"
                     >{{ report.notes }}</textarea>
                 </div>
 
@@ -90,5 +133,48 @@
         </div>
     </div>
 </div>
+
+<script>
+// Rich Text Editor functionality
+const editorContent = document.getElementById('editor-content');
+const toolbarButtons = document.querySelectorAll('.toolbar-btn');
+
+// Initialize toolbar buttons
+toolbarButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const command = this.dataset.command;
+        const value = this.dataset.value || null;
+        
+        document.execCommand(command, false, value);
+        editorContent.focus();
+    });
+});
+
+// Load existing content into editor
+document.addEventListener('DOMContentLoaded', function() {
+    const existingContent = document.getElementById('notes').value;
+    if (existingContent) {
+        editorContent.innerHTML = existingContent;
+    }
+});
+
+// Sync editor content to hidden textarea on form submit
+document.querySelector('form').addEventListener('submit', function(e) {
+    const htmlContent = editorContent.innerHTML;
+    document.getElementById('notes').value = htmlContent;
+    
+    // Check if content is empty (only placeholder or whitespace)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!textContent.trim()) {
+        e.preventDefault();
+        alert('Please enter some notes for your report.');
+        return false;
+    }
+});
+</script>
 
 {% endblock %}
