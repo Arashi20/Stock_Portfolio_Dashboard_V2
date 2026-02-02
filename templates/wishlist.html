@@ -114,6 +114,7 @@
                             <tr>
                                 <th>Ticker</th>
                                 <th>Target Price</th>
+                                <th>Target Price (€)</th>
                                 <th>Current Price</th>
                                 <th>Date Added</th>
                                 <th>Actions</th>
@@ -124,6 +125,13 @@
                             <tr>
                                 <td><strong>{{ item.ticker }}</strong></td>
                                 <td>{{ item.currency }}{{ "%.2f"|format(item.target_price) }}</td>
+                                <td>
+                                    {% if item.target_price_eur %}
+                                        €{{ "%.2f"|format(item.target_price_eur) }}
+                                    {% else %}
+                                        <span style="opacity: 0.6;">Not Available</span>
+                                    {% endif %}
+                                </td>
                                 <td>
                                     {% if item.current_price %}
                                         {{ item.currency }}{{ "%.2f"|format(item.current_price) }}

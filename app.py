@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
 import yfinance as yf
+import requests
 from dcf.dcf_default import dcf_valuation_advanced
 
 # Load environment variables from .env file
@@ -21,6 +22,9 @@ app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
 # Hardcoded credentials (for development only)
 HARDCODED_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
 HARDCODED_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'stockanalysis2026')
+
+# OpenExchange API Key for currency conversion
+OPENEXCHANGE_API_KEY = os.environ.get('OPENEXCHANGE_API_KEY', '')
 
 # Initialize database
 db = SQLAlchemy(app)
@@ -50,6 +54,65 @@ def before_request():
     if current_user.is_authenticated:
         session.permanent = True
         app.permanent_session_lifetime = timedelta(minutes=15)
+
+# Currency conversion helper function
+def convert_to_eur(amount, currency_symbol):
+    """Convert amount from given currency symbol to EUR"""
+    if not OPENEXCHANGE_API_KEY:
+        return None
+    
+    # Mapping from currency symbols to currency codes
+    currency_map = {
+        '$': 'USD',
+        '€': 'EUR',
+        '£': 'GBP',
+        '¥': 'JPY',
+        '₹': 'INR',
+        'C$': 'CAD',
+        'A$': 'AUD',
+        'CHF': 'CHF',
+        'CNY': 'CNY',
+        'SEK': 'SEK',
+        'NZD': 'NZD',
+        'MXN': 'MXN',
+        'SGD': 'SGD',
+        'HKD': 'HKD',
+        'NOK': 'NOK',
+        'KRW': 'KRW',
+        'TRY': 'TRY',
+        'RUB': 'RUB',
+        'BRL': 'BRL',
+        'ZAR': 'ZAR',
+        'SAR': 'SAR'
+    }
+    
+    currency_code = currency_map.get(currency_symbol, 'USD')
+    
+    # If already in EUR, return the amount
+    if currency_code == 'EUR':
+        return amount
+    
+    try:
+        # Get exchange rates from OpenExchange API
+        url = f"https://openexchangerates.org/api/latest.json?app_id={OPENEXCHANGE_API_KEY}"
+        response = requests.get(url, timeout=5)
+        
+        if response.status_code == 200:
+            data = response.json()
+            rates = data.get('rates', {})
+            
+            # OpenExchange uses USD as base, so we need to convert:
+            # 1. From currency_code to USD
+            # 2. From USD to EUR
+            if currency_code in rates and 'EUR' in rates:
+                usd_amount = amount / rates[currency_code]
+                eur_amount = usd_amount * rates['EUR']
+                return round(eur_amount, 2)
+        
+        return None
+    except Exception as e:
+        print(f"Error converting currency: {e}")
+        return None
 
 # Database Models
 class DCFAnalysis(db.Model):
@@ -386,7 +449,7 @@ def wishlist():
     """Wishlist page"""
     wishlist_items = Wishlist.query.order_by(Wishlist.date_added.desc()).all()
     
-    # Fetch current prices for all wishlist items
+    # Fetch current prices and convert target prices to EUR
     for item in wishlist_items:
         try:
             stock = yf.Ticker(item.ticker)
@@ -396,6 +459,9 @@ def wishlist():
         except Exception as e:
             print(f"Error fetching price for {item.ticker}: {e}")
             item.current_price = None
+        
+        # Convert target price to EUR
+        item.target_price_eur = convert_to_eur(item.target_price, item.currency)
     
     return render_template('wishlist.html', wishlist=wishlist_items)
 
