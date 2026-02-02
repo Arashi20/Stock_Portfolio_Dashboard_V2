@@ -226,8 +226,9 @@
             resetInactivityTimers();
             
             // Make a lightweight request to keep the session alive
+            // Using GET instead of HEAD to ensure session renewal
             fetch('{{ url_for("home") }}', { 
-                method: 'HEAD',
+                method: 'GET',
                 credentials: 'same-origin'
             }).catch(function(err) {
                 console.log('Error refreshing session:', err);
@@ -273,12 +274,15 @@
         resetInactivityTimers();
 
         // Prevent modal from closing when clicking inside it
-        document.getElementById('inactivityModal').addEventListener('click', function(e) {
-            if (e.target === this) {
-                // Don't allow closing by clicking backdrop
-                e.stopPropagation();
-            }
-        });
+        const inactivityModal = document.getElementById('inactivityModal');
+        if (inactivityModal) {
+            inactivityModal.addEventListener('click', function(e) {
+                if (e.target === this) {
+                    // Don't allow closing by clicking backdrop
+                    e.stopPropagation();
+                }
+            });
+        }
     </script>
 
     {% block extra_js %}{% endblock %}
