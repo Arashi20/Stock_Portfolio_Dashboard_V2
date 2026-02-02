@@ -123,7 +123,7 @@
                         <tbody>
                             {% for item in wishlist %}
                             <tr>
-                                <td><strong>{{ item.ticker }}</strong></td>
+                                <td><strong><a href="https://finance.yahoo.com/quote/{{ item.ticker }}" target="_blank" style="color: inherit; text-decoration: none;">{{ item.ticker }} <i class="fas fa-external-link-alt" style="font-size: 0.7em; opacity: 0.6;"></i></a></strong></td>
                                 <td>{{ item.currency }}{{ "%.2f"|format(item.target_price) }}</td>
                                 <td>
                                     {% if item.target_price_eur %}

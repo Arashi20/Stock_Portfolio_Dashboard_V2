@@ -347,7 +347,7 @@
                             {% for analysis in saved_analyses %}
                             <tr>
                                 <td>{{ analysis.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
-                                <td><strong>{{ analysis.ticker }}</strong></td>
+                                <td><strong><a href="https://finance.yahoo.com/quote/{{ analysis.ticker }}" target="_blank" style="color: inherit; text-decoration: none;">{{ analysis.ticker }} <i class="fas fa-external-link-alt" style="font-size: 0.7em; opacity: 0.6;"></i></a></strong></td>
                                 <td>{{ "{:,.0f}".format(analysis.free_cash_flow) }}</td>
                                 <td>{{ "{:,.0f}".format(analysis.shares_outstanding) }}</td>
                                 <td>{{ analysis.growth_rate_5yr }}%</td>

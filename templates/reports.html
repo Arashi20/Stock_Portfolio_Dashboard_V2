@@ -116,7 +116,7 @@
                         <tbody>
                             {% for report in reports %}
                             <tr>
-                                <td><strong>{{ report.ticker }}</strong></td>
+                                <td><strong><a href="https://stock-research-production.up.railway.app/?ticker={{ report.ticker }}" target="_blank" style="color: inherit; text-decoration: none;">{{ report.ticker }} <i class="fas fa-external-link-alt" style="font-size: 0.7em; opacity: 0.6;"></i></a></strong></td>
                                 <td>{{ report.title }}</td>
                                 <td>{{ report.date.strftime('%Y-%m-%d') }}</td>
                                 <td>{{ report.date_created.strftime('%Y-%m-%d') }}</td>
