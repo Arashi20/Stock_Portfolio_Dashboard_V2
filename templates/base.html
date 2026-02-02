@@ -234,7 +234,7 @@
             })
             .then(function(response) {
                 // Check if session is still valid
-                if (response.status === 401 || response.redirected && response.url.includes('login')) {
+                if (response.status === 401 || (response.redirected && response.url.includes('login'))) {
                     // Session expired, redirect to login
                     window.location.href = '{{ url_for("login") }}';
                 }
