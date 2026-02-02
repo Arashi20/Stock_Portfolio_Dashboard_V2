@@ -110,7 +110,12 @@ This is a lightweight, personal-use web application designed to streamline stock
 ## 🔐 Security Features
 
 - Secure user authentication with password hashing
-- Session management with 15-minute inactivity timeout
+- **Automatic logout after 15 minutes of inactivity**
+  - Client-side inactivity tracking (mouse, keyboard, touch, scroll)
+  - Warning modal at 14 minutes with 60-second countdown
+  - Automatic redirect to login page after timeout
+  - "Stay Logged In" option to extend session
+- Server-side session timeout enforcement
 - Environment-based configuration (development vs. production)
 - SQL injection protection via ORM (SQLAlchemy)
 - CSRF protection (Flask built-in)

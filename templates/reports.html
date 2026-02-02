@@ -74,13 +74,55 @@
                             <i class="fas fa-edit"></i>
                             Analysis & Notes
                         </label>
+                        <div class="rich-text-editor">
+                            <div class="editor-toolbar">
+                                <button type="button" class="toolbar-btn" data-command="bold" title="Bold (Ctrl+B)">
+                                    <i class="fas fa-bold"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="italic" title="Italic (Ctrl+I)">
+                                    <i class="fas fa-italic"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="underline" title="Underline (Ctrl+U)">
+                                    <i class="fas fa-underline"></i>
+                                </button>
+                                <span class="toolbar-separator"></span>
+                                <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="h2" title="Heading 2">
+                                    <i class="fas fa-heading"></i> 2
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="h3" title="Heading 3">
+                                    <i class="fas fa-heading"></i> 3
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="formatBlock" data-value="p" title="Paragraph">
+                                    <i class="fas fa-paragraph"></i>
+                                </button>
+                                <span class="toolbar-separator"></span>
+                                <button type="button" class="toolbar-btn" data-command="insertUnorderedList" title="Bullet List">
+                                    <i class="fas fa-list-ul"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="insertOrderedList" title="Numbered List">
+                                    <i class="fas fa-list-ol"></i>
+                                </button>
+                                <span class="toolbar-separator"></span>
+                                <button type="button" class="toolbar-btn" data-command="justifyLeft" title="Align Left">
+                                    <i class="fas fa-align-left"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="justifyCenter" title="Align Center">
+                                    <i class="fas fa-align-center"></i>
+                                </button>
+                                <button type="button" class="toolbar-btn" data-command="justifyRight" title="Align Right">
+                                    <i class="fas fa-align-right"></i>
+                                </button>
+                                <span class="toolbar-separator"></span>
+                                <button type="button" class="toolbar-btn" data-command="removeFormat" title="Clear Formatting">
+                                    <i class="fas fa-eraser"></i>
+                                </button>
+                            </div>
+                            <div id="editor-content" class="editor-content" contenteditable="true" data-placeholder="Write your comprehensive analysis, insights, and due diligence notes here..."></div>
+                        </div>
                         <textarea 
                             id="notes" 
                             name="notes" 
-                            class="form-control report-textarea" 
-                            placeholder="Write your comprehensive analysis, insights, and due diligence notes here..."
-                            rows="8"
-                            required
+                            style="display: none;"
                         ></textarea>
                     </div>
 
@@ -157,6 +199,45 @@
 </div>
 
 <script>
+// Rich Text Editor functionality
+const editorContent = document.getElementById('editor-content');
+const toolbarButtons = document.querySelectorAll('.toolbar-btn');
+
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Initialize toolbar buttons
+toolbarButtons.forEach(button => {
+    button.addEventListener('click', function(e) {
+        e.preventDefault();
+        const command = this.dataset.command;
+        const value = this.dataset.value || null;
+        
+        document.execCommand(command, false, value);
+        editorContent.focus();
+    });
+});
+
+// Sync editor content to hidden textarea on form submit
+document.getElementById('reportForm').addEventListener('submit', function(e) {
+    const htmlContent = editorContent.innerHTML;
+    document.getElementById('notes').value = htmlContent;
+    
+    // Check if content is empty (only placeholder or whitespace)
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+    
+    if (!textContent.trim()) {
+        e.preventDefault();
+        alert('Please enter some notes for your report.');
+    }
+});
+
 // Set today's date as default and pre-fill from URL parameters
 document.addEventListener('DOMContentLoaded', function() {
     const dateInput = document.getElementById('date');
@@ -185,29 +266,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetPrice = urlParams.get('target_price');
         const currency = urlParams.get('currency') || '$';
         
+        // Escape user input to prevent XSS
+        const tickerEscaped = escapeHtml(ticker);
+        const currencyEscaped = escapeHtml(currency);
+        
         if (fcf && intrinsic) {
-            const notes = `DCF Analysis Summary for ${ticker}\n\n` +
-                `Intrinsic Value: ${currency}${parseFloat(intrinsic).toFixed(2)} per share\n\n` +
-                `Key Assumptions:\n` +
-                `- Free Cash Flow: ${parseFloat(fcf).toLocaleString()}\n` +
-                `- Shares Outstanding: ${parseFloat(shares).toLocaleString()}\n` +
-                `- Growth Rate (Years 1-5): ${growth5}%\n` +
-                `- Growth Rate (Years 6-10): ${growth610}%\n` +
-                `- Terminal Growth Rate: ${terminal}%\n` +
-                `- Discount Rate: ${discount}%\n` +
-                `- Share Dilution: ${dilution}%\n\n` +
-                `Analysis Notes:\n` +
-                `[Add your detailed analysis, insights, and due diligence notes here...]`;
+            const notesHTML = `<h2>DCF Analysis Summary for ${tickerEscaped}</h2>` +
+                `<p><strong>Intrinsic Value: ${currencyEscaped}${parseFloat(intrinsic).toFixed(2)} per share</strong></p>` +
+                `<h3>Key Assumptions:</h3>` +
+                `<ul>` +
+                `<li>Free Cash Flow: ${parseFloat(fcf).toLocaleString()}</li>` +
+                `<li>Shares Outstanding: ${parseFloat(shares).toLocaleString()}</li>` +
+                `<li>Growth Rate (Years 1-5): ${growth5}%</li>` +
+                `<li>Growth Rate (Years 6-10): ${growth610}%</li>` +
+                `<li>Terminal Growth Rate: ${terminal}%</li>` +
+                `<li>Discount Rate: ${discount}%</li>` +
+                `<li>Share Dilution: ${dilution}%</li>` +
+                `</ul>` +
+                `<h3>Analysis Notes:</h3>` +
+                `<p>[Add your detailed analysis, insights, and due diligence notes here...]</p>`;
             
-            document.getElementById('notes').value = notes;
+            editorContent.innerHTML = notesHTML;
         } else if (targetPrice) {
             // Coming from wishlist - simpler note
-            const notes = `${ticker} Wishlist Analysis\n\n` +
-                `Target Price: ${currency}${parseFloat(targetPrice).toFixed(2)}\n\n` +
-                `Analysis Notes:\n` +
-                `[Add your detailed analysis, insights, and due diligence notes here...]`;
+            const notesHTML = `<h2>${tickerEscaped} Wishlist Analysis</h2>` +
+                `<p><strong>Target Price: ${currencyEscaped}${parseFloat(targetPrice).toFixed(2)}</strong></p>` +
+                `<h3>Analysis Notes:</h3>` +
+                `<p>[Add your detailed analysis, insights, and due diligence notes here...]</p>`;
             
-            document.getElementById('notes').value = notes;
+            editorContent.innerHTML = notesHTML;
         }
     }
 });
