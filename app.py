@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 import os
 import yfinance as yf
 import requests
+import bleach
 from dcf.dcf_default import dcf_valuation_advanced
 
 # Load environment variables from .env file
@@ -54,6 +55,26 @@ def before_request():
     if current_user.is_authenticated:
         session.permanent = True
         app.permanent_session_lifetime = timedelta(minutes=15)
+
+# HTML sanitization helper function
+def sanitize_html(html_content):
+    """Sanitize HTML content to prevent XSS attacks"""
+    # Define allowed HTML tags and attributes
+    allowed_tags = ['p', 'br', 'strong', 'em', 'u', 'h2', 'h3', 'ul', 'ol', 'li', 'b', 'i']
+    allowed_attributes = {
+        '*': ['style'],  # Allow style attribute for alignment
+    }
+    allowed_styles = ['text-align']
+    
+    # Clean the HTML
+    cleaned_html = bleach.clean(
+        html_content,
+        tags=allowed_tags,
+        attributes=allowed_attributes,
+        styles=allowed_styles,
+        strip=True
+    )
+    return cleaned_html
 
 # Currency conversion helper function
 def convert_to_eur(amount, currency_symbol):
@@ -379,6 +400,9 @@ def create_report():
             flash('Please fill in all required fields.', 'danger')
             return redirect(url_for('reports'))
         
+        # Sanitize HTML content to prevent XSS
+        sanitized_notes = sanitize_html(notes)
+        
         # Parse the date
         report_date = datetime.strptime(date_str, '%Y-%m-%d')
         
@@ -387,7 +411,7 @@ def create_report():
             ticker=ticker,
             title=title,
             date=report_date,
-            notes=notes
+            notes=sanitized_notes
         )
         db.session.add(new_report)
         db.session.commit()
@@ -417,7 +441,11 @@ def edit_report(report_id):
             report.ticker = request.form.get('ticker', '').upper().strip()
             report.title = request.form.get('title', '').strip()
             report.date = datetime.strptime(request.form.get('date'), '%Y-%m-%d')
-            report.notes = request.form.get('notes', '').strip()
+            
+            # Sanitize HTML content to prevent XSS
+            notes = request.form.get('notes', '').strip()
+            report.notes = sanitize_html(notes)
+            
             db.session.commit()
             flash('Report updated successfully!', 'success')
             return redirect(url_for('view_report', report_id=report.id))

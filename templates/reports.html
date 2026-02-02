@@ -203,6 +203,13 @@
 const editorContent = document.getElementById('editor-content');
 const toolbarButtons = document.querySelectorAll('.toolbar-btn');
 
+// HTML escape function to prevent XSS
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
 // Initialize toolbar buttons
 toolbarButtons.forEach(button => {
     button.addEventListener('click', function(e) {
@@ -228,7 +235,6 @@ document.getElementById('reportForm').addEventListener('submit', function(e) {
     if (!textContent.trim()) {
         e.preventDefault();
         alert('Please enter some notes for your report.');
-        return false;
     }
 });
 
@@ -260,9 +266,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetPrice = urlParams.get('target_price');
         const currency = urlParams.get('currency') || '$';
         
+        // Escape user input to prevent XSS
+        const tickerEscaped = escapeHtml(ticker);
+        const currencyEscaped = escapeHtml(currency);
+        
         if (fcf && intrinsic) {
-            const notesHTML = `<h2>DCF Analysis Summary for ${ticker}</h2>` +
-                `<p><strong>Intrinsic Value: ${currency}${parseFloat(intrinsic).toFixed(2)} per share</strong></p>` +
+            const notesHTML = `<h2>DCF Analysis Summary for ${tickerEscaped}</h2>` +
+                `<p><strong>Intrinsic Value: ${currencyEscaped}${parseFloat(intrinsic).toFixed(2)} per share</strong></p>` +
                 `<h3>Key Assumptions:</h3>` +
                 `<ul>` +
                 `<li>Free Cash Flow: ${parseFloat(fcf).toLocaleString()}</li>` +
@@ -279,8 +289,8 @@ document.addEventListener('DOMContentLoaded', function() {
             editorContent.innerHTML = notesHTML;
         } else if (targetPrice) {
             // Coming from wishlist - simpler note
-            const notesHTML = `<h2>${ticker} Wishlist Analysis</h2>` +
-                `<p><strong>Target Price: ${currency}${parseFloat(targetPrice).toFixed(2)}</strong></p>` +
+            const notesHTML = `<h2>${tickerEscaped} Wishlist Analysis</h2>` +
+                `<p><strong>Target Price: ${currencyEscaped}${parseFloat(targetPrice).toFixed(2)}</strong></p>` +
                 `<h3>Analysis Notes:</h3>` +
                 `<p>[Add your detailed analysis, insights, and due diligence notes here...]</p>`;
             
