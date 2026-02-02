@@ -62,6 +62,25 @@
         </div>
     </div>
 
+    <!-- Inactivity Warning Modal -->
+    <div id="inactivityModal" class="modal-overlay" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <i class="fas fa-clock"></i>
+                <h3>Session Expiring Soon</h3>
+            </div>
+            <div class="modal-body">
+                <p>Your session will expire in <strong id="timeRemaining">60</strong> seconds due to inactivity.</p>
+                <p>Click "Stay Logged In" to continue your session.</p>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-primary" onclick="stayLoggedIn()">
+                    <i class="fas fa-check"></i> Stay Logged In
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // Mobile sidebar toggle
         const mobileMenuBtn = document.getElementById('mobileMenuBtn');
@@ -133,6 +152,131 @@
         document.getElementById('deleteModal').addEventListener('click', function(e) {
             if (e.target === this) {
                 closeDeleteModal();
+            }
+        });
+    </script>
+
+    <script>
+        // Inactivity Logout System
+        // Configuration
+        const INACTIVITY_TIMEOUT = 15 * 60 * 1000; // 15 minutes in milliseconds
+        const WARNING_TIME = 14 * 60 * 1000; // Show warning at 14 minutes
+        const COUNTDOWN_DURATION = 60; // 60 seconds countdown
+
+        let inactivityTimer = null;
+        let warningTimer = null;
+        let countdownTimer = null;
+        let countdownSeconds = COUNTDOWN_DURATION;
+
+        // Function to reset all timers
+        function resetInactivityTimers() {
+            // Clear existing timers
+            clearTimeout(inactivityTimer);
+            clearTimeout(warningTimer);
+            clearInterval(countdownTimer);
+            closeInactivityModal();
+
+            // Set warning timer (show modal at 14 minutes)
+            warningTimer = setTimeout(showInactivityWarning, WARNING_TIME);
+
+            // Set logout timer (logout at 15 minutes)
+            inactivityTimer = setTimeout(logoutDueToInactivity, INACTIVITY_TIMEOUT);
+        }
+
+        // Function to show inactivity warning modal
+        function showInactivityWarning() {
+            const modal = document.getElementById('inactivityModal');
+            if (modal) {
+                modal.style.display = 'flex';
+                countdownSeconds = COUNTDOWN_DURATION;
+                updateCountdown();
+
+                // Start countdown
+                countdownTimer = setInterval(function() {
+                    countdownSeconds--;
+                    updateCountdown();
+
+                    if (countdownSeconds <= 0) {
+                        clearInterval(countdownTimer);
+                    }
+                }, 1000);
+            }
+        }
+
+        // Function to update countdown display
+        function updateCountdown() {
+            const timeElement = document.getElementById('timeRemaining');
+            if (timeElement) {
+                timeElement.textContent = countdownSeconds;
+            }
+        }
+
+        // Function to close inactivity modal
+        function closeInactivityModal() {
+            const modal = document.getElementById('inactivityModal');
+            if (modal) {
+                modal.style.display = 'none';
+            }
+            clearInterval(countdownTimer);
+        }
+
+        // Function to keep user logged in
+        function stayLoggedIn() {
+            closeInactivityModal();
+            resetInactivityTimers();
+            
+            // Make a lightweight request to keep the session alive
+            fetch('{{ url_for("home") }}', { 
+                method: 'HEAD',
+                credentials: 'same-origin'
+            }).catch(function(err) {
+                console.log('Error refreshing session:', err);
+            });
+        }
+
+        // Function to logout due to inactivity
+        function logoutDueToInactivity() {
+            clearInterval(countdownTimer);
+            closeInactivityModal();
+            
+            // Redirect to logout
+            window.location.href = '{{ url_for("logout") }}';
+        }
+
+        // Events that reset the inactivity timer
+        const activityEvents = [
+            'mousedown',
+            'mousemove', 
+            'keypress',
+            'scroll',
+            'touchstart',
+            'click'
+        ];
+
+        // Throttle function to prevent too many timer resets
+        let throttleTimer = null;
+        function throttledResetTimers() {
+            if (!throttleTimer) {
+                resetInactivityTimers();
+                throttleTimer = setTimeout(function() {
+                    throttleTimer = null;
+                }, 1000); // Only reset once per second max
+            }
+        }
+
+        // Add event listeners for user activity
+        activityEvents.forEach(function(eventName) {
+            document.addEventListener(eventName, throttledResetTimers, true);
+        });
+
+        // Initialize timers when page loads
+        resetInactivityTimers();
+
+        // Prevent modal from closing when clicking inside it
+        document.getElementById('inactivityModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                // Don't allow closing by clicking backdrop
+                e.stopPropagation();
             }
         });
     </script>
