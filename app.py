@@ -240,6 +240,8 @@ def calculate_dcf():
             saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         
+        # Validate ticker exists using yfinance
+        info = None
         try:
             stock = yf.Ticker(ticker)
             # Try to get basic info to validate ticker exists
@@ -256,13 +258,20 @@ def calculate_dcf():
             saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         
-        free_cash_flow = float(request.form.get('free_cash_flow'))
-        growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
-        growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
-        terminal_growth_rate = float(request.form.get('terminal_growth_rate'))
-        discount_rate = float(request.form.get('discount_rate'))
-        shares_outstanding = float(request.form.get('shares_outstanding'))
-        share_dilution = float(request.form.get('share_dilution'))
+        # Validate and parse numeric form fields
+        try:
+            free_cash_flow = float(request.form.get('free_cash_flow'))
+            growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
+            growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
+            terminal_growth_rate = float(request.form.get('terminal_growth_rate'))
+            discount_rate = float(request.form.get('discount_rate'))
+            shares_outstanding = float(request.form.get('shares_outstanding'))
+            share_dilution = float(request.form.get('share_dilution'))
+        except (ValueError, TypeError) as e:
+            flash('Please ensure all numeric fields are filled with valid numbers.', 'danger')
+            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
         currency = request.form.get('currency', '$')  # Get manual currency input
         
         # Calculate intrinsic value using DCF model
@@ -276,10 +285,12 @@ def calculate_dcf():
             share_change_rate=share_dilution
         )
         
-        # Get current stock price from Yahoo Finance (already validated above)
-        current_price = info.get("regularMarketPrice")
-        if current_price:
-            print(f"Found price for {ticker}: {current_price}")
+        # Get current stock price from Yahoo Finance (if info was fetched successfully)
+        current_price = None
+        if info:
+            current_price = info.get("regularMarketPrice")
+            if current_price:
+                print(f"Found price for {ticker}: {current_price}")
         
         # Prepare result data
         result = {
