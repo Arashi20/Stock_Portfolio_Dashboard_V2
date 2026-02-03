@@ -7,11 +7,16 @@ import os
 import yfinance as yf
 import requests
 import bleach
+import logging
 from bleach.css_sanitizer import CSSSanitizer
 from dcf.dcf_default import dcf_valuation_advanced
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -216,12 +221,16 @@ def home():
     """Home page with overview and quick links"""
     return render_template('home.html')
 
+def get_saved_dcf_analyses():
+    """Helper function to fetch all saved DCF analyses"""
+    return DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+
 @app.route('/dcf')
 @login_required
 def dcf():
     """DCF analysis page"""
     # Fetch all saved analyses ordered by most recent first
-    saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+    saved_analyses = get_saved_dcf_analyses()
     return render_template('dcf.html', saved_analyses=saved_analyses)
 
 @app.route('/calculate-dcf', methods=['POST'])
@@ -231,15 +240,49 @@ def calculate_dcf():
     try:
         # Get form data
         ticker = request.form.get('ticker', '').upper().strip()
-        print(f"DEBUG: Received ticker from form: '{request.form.get('ticker')}'")
-        print(f"DEBUG: Processed ticker: '{ticker}'")
-        free_cash_flow = float(request.form.get('free_cash_flow'))
-        growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
-        growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
-        terminal_growth_rate = float(request.form.get('terminal_growth_rate'))
-        discount_rate = float(request.form.get('discount_rate'))
-        shares_outstanding = float(request.form.get('shares_outstanding'))
-        share_dilution = float(request.form.get('share_dilution'))
+        logger.info(f"DCF calculation requested for ticker: {ticker}")
+        
+        # Validate ticker symbol
+        if not ticker:
+            flash('Please enter a ticker symbol.', 'danger')
+            saved_analyses = get_saved_dcf_analyses()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
+        # Validate ticker exists using yfinance
+        info = None
+        ticker_valid = False
+        try:
+            stock = yf.Ticker(ticker)
+            # Try to get basic info to validate ticker exists
+            info = stock.info
+            # Check if ticker is valid by verifying we got meaningful data
+            # We check for 'symbol' or 'shortName' as indicators of a valid ticker
+            if info and (info.get('symbol') or info.get('shortName')):
+                ticker_valid = True
+        except Exception as e:
+            logger.error(f"Ticker validation error for {ticker}: {e}")
+        
+        if not ticker_valid:
+            logger.warning(f"Invalid ticker symbol: {ticker}")
+            flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
+            saved_analyses = get_saved_dcf_analyses()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
+        # Validate and parse numeric form fields
+        try:
+            free_cash_flow = float(request.form.get('free_cash_flow'))
+            growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
+            growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
+            terminal_growth_rate = float(request.form.get('terminal_growth_rate'))
+            discount_rate = float(request.form.get('discount_rate'))
+            shares_outstanding = float(request.form.get('shares_outstanding'))
+            share_dilution = float(request.form.get('share_dilution'))
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid numeric field input for {ticker}: {e}")
+            flash('Please ensure all numeric fields are filled with valid numbers.', 'danger')
+            saved_analyses = get_saved_dcf_analyses()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
         currency = request.form.get('currency', '$')  # Get manual currency input
         
         # Calculate intrinsic value using DCF model
@@ -253,17 +296,12 @@ def calculate_dcf():
             share_change_rate=share_dilution
         )
         
-        # Get current stock price from Yahoo Finance (using method from working project)
+        # Get current stock price from Yahoo Finance (if info was fetched successfully)
         current_price = None
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
+        if info:
             current_price = info.get("regularMarketPrice")
             if current_price:
-                print(f"Found price for {ticker}: {current_price}")
-        except Exception as e:
-            print(f"Error fetching price for {ticker}: {e}")
-            pass
+                logger.info(f"Found price for {ticker}: {current_price}")
         
         # Prepare result data
         result = {
@@ -283,14 +321,19 @@ def calculate_dcf():
         }
         
         flash(f'DCF calculation completed for {ticker}!', 'success')
-        return render_template('dcf.html', result=result, **request.form)
+        saved_analyses = get_saved_dcf_analyses()
+        return render_template('dcf.html', result=result, saved_analyses=saved_analyses, **request.form)
         
     except ValueError as e:
+        logger.error(f'DCF calculation error: {e}')
         flash(f'Calculation error: {str(e)}', 'danger')
-        return render_template('dcf.html', **request.form)
+        saved_analyses = get_saved_dcf_analyses()
+        return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
     except Exception as e:
+        logger.error(f'Unexpected error in DCF calculation: {e}')
         flash(f'An error occurred: {str(e)}', 'danger')
-        return render_template('dcf.html', **request.form)
+        saved_analyses = get_saved_dcf_analyses()
+        return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
 
 @app.route('/save-dcf-analysis', methods=['POST'])
 @login_required
