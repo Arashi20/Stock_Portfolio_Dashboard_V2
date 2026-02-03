@@ -7,11 +7,16 @@ import os
 import yfinance as yf
 import requests
 import bleach
+import logging
 from bleach.css_sanitizer import CSSSanitizer
 from dcf.dcf_default import dcf_valuation_advanced
 
 # Load environment variables from .env file
 load_dotenv()
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
@@ -216,12 +221,16 @@ def home():
     """Home page with overview and quick links"""
     return render_template('home.html')
 
+def get_saved_dcf_analyses():
+    """Helper function to fetch all saved DCF analyses"""
+    return DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+
 @app.route('/dcf')
 @login_required
 def dcf():
     """DCF analysis page"""
     # Fetch all saved analyses ordered by most recent first
-    saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+    saved_analyses = get_saved_dcf_analyses()
     return render_template('dcf.html', saved_analyses=saved_analyses)
 
 @app.route('/calculate-dcf', methods=['POST'])
@@ -231,13 +240,12 @@ def calculate_dcf():
     try:
         # Get form data
         ticker = request.form.get('ticker', '').upper().strip()
-        print(f"DEBUG: Received ticker from form: '{request.form.get('ticker')}'")
-        print(f"DEBUG: Processed ticker: '{ticker}'")
+        logger.info(f"DCF calculation requested for ticker: {ticker}")
         
         # Validate ticker symbol
         if not ticker:
             flash('Please enter a ticker symbol.', 'danger')
-            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            saved_analyses = get_saved_dcf_analyses()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         
         # Validate ticker exists using yfinance
@@ -249,13 +257,14 @@ def calculate_dcf():
             # Check if ticker is valid by verifying we got meaningful data
             # We check for 'symbol' or 'shortName' as indicators of a valid ticker
             if not info or (not info.get('symbol') and not info.get('shortName')):
+                logger.warning(f"Invalid ticker symbol: {ticker}")
                 flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
-                saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+                saved_analyses = get_saved_dcf_analyses()
                 return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         except Exception as e:
-            print(f"Ticker validation error for {ticker}: {e}")
+            logger.error(f"Ticker validation error for {ticker}: {e}")
             flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
-            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            saved_analyses = get_saved_dcf_analyses()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         
         # Validate and parse numeric form fields
@@ -268,8 +277,9 @@ def calculate_dcf():
             shares_outstanding = float(request.form.get('shares_outstanding'))
             share_dilution = float(request.form.get('share_dilution'))
         except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid numeric field input for {ticker}: {e}")
             flash('Please ensure all numeric fields are filled with valid numbers.', 'danger')
-            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            saved_analyses = get_saved_dcf_analyses()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
         
         currency = request.form.get('currency', '$')  # Get manual currency input
@@ -290,7 +300,7 @@ def calculate_dcf():
         if info:
             current_price = info.get("regularMarketPrice")
             if current_price:
-                print(f"Found price for {ticker}: {current_price}")
+                logger.info(f"Found price for {ticker}: {current_price}")
         
         # Prepare result data
         result = {
@@ -310,16 +320,18 @@ def calculate_dcf():
         }
         
         flash(f'DCF calculation completed for {ticker}!', 'success')
-        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        saved_analyses = get_saved_dcf_analyses()
         return render_template('dcf.html', result=result, saved_analyses=saved_analyses, **request.form)
         
     except ValueError as e:
+        logger.error(f'DCF calculation error: {e}')
         flash(f'Calculation error: {str(e)}', 'danger')
-        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        saved_analyses = get_saved_dcf_analyses()
         return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
     except Exception as e:
+        logger.error(f'Unexpected error in DCF calculation: {e}')
         flash(f'An error occurred: {str(e)}', 'danger')
-        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        saved_analyses = get_saved_dcf_analyses()
         return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
 
 @app.route('/save-dcf-analysis', methods=['POST'])
