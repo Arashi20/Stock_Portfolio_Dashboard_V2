@@ -2184,3 +2184,99 @@ body {
         font-size: 0.9375rem;
     }
 }
+
+/* ========================================
+   4K and Large Display Optimization
+   ======================================== */
+
+/* QHD and Larger Displays (2560px+) */
+@media (min-width: 2560px) {
+    .content-wrapper {
+        max-width: 2000px;
+    }
+    
+    .main-content {
+        padding: 3rem;
+    }
+    
+    /* Optimize grid layouts for wider screens */
+    .action-cards {
+        gap: 2.5rem;
+    }
+    
+    .features-grid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 2.5rem;
+    }
+    
+    /* Larger cards and spacing */
+    .action-card,
+    .info-card {
+        padding: 2.5rem;
+    }
+    
+    /* Better typography scaling */
+    .page-title {
+        font-size: 3rem;
+    }
+    
+    .section-title {
+        font-size: 2rem;
+    }
+}
+
+/* True 4K Displays (3840px+) */
+@media (min-width: 3840px) {
+    .content-wrapper {
+        max-width: 2800px;
+    }
+    
+    .main-content {
+        padding: 4rem;
+    }
+    
+    /* Further optimize spacing for 4K */
+    .action-cards {
+        gap: 3rem;
+    }
+    
+    .features-grid {
+        gap: 3rem;
+    }
+    
+    .action-card,
+    .info-card {
+        padding: 3rem;
+    }
+    
+    /* Enhanced typography for 4K clarity */
+    .page-title {
+        font-size: 3.5rem;
+    }
+    
+    .section-title {
+        font-size: 2.5rem;
+    }
+    
+    /* Table readability improvements */
+    table {
+        font-size: 1.125rem;
+    }
+    
+    th, td {
+        padding: 1.25rem 1.5rem;
+    }
+    
+    /* Form elements sizing */
+    .form-group input,
+    .form-group select,
+    .form-group textarea {
+        font-size: 1.125rem;
+        padding: 1rem 1.25rem;
+    }
+    
+    .btn {
+        font-size: 1.125rem;
+        padding: 0.875rem 2rem;
+    }
+}
