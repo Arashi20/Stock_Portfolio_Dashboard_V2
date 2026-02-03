@@ -233,6 +233,29 @@ def calculate_dcf():
         ticker = request.form.get('ticker', '').upper().strip()
         print(f"DEBUG: Received ticker from form: '{request.form.get('ticker')}'")
         print(f"DEBUG: Processed ticker: '{ticker}'")
+        
+        # Validate ticker symbol
+        if not ticker:
+            flash('Please enter a ticker symbol.', 'danger')
+            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
+        try:
+            stock = yf.Ticker(ticker)
+            # Try to get basic info to validate ticker exists
+            info = stock.info
+            # Check if ticker is valid by verifying we got meaningful data
+            # We check for 'symbol' or 'shortName' as indicators of a valid ticker
+            if not info or (not info.get('symbol') and not info.get('shortName')):
+                flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
+                saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+                return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        except Exception as e:
+            print(f"Ticker validation error for {ticker}: {e}")
+            flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
+            saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+            return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+        
         free_cash_flow = float(request.form.get('free_cash_flow'))
         growth_rate_5yr = float(request.form.get('growth_rate_5yr'))
         growth_rate_6_10yr = float(request.form.get('growth_rate_6_10yr'))
@@ -253,17 +276,10 @@ def calculate_dcf():
             share_change_rate=share_dilution
         )
         
-        # Get current stock price from Yahoo Finance (using method from working project)
-        current_price = None
-        try:
-            stock = yf.Ticker(ticker)
-            info = stock.info
-            current_price = info.get("regularMarketPrice")
-            if current_price:
-                print(f"Found price for {ticker}: {current_price}")
-        except Exception as e:
-            print(f"Error fetching price for {ticker}: {e}")
-            pass
+        # Get current stock price from Yahoo Finance (already validated above)
+        current_price = info.get("regularMarketPrice")
+        if current_price:
+            print(f"Found price for {ticker}: {current_price}")
         
         # Prepare result data
         result = {
@@ -283,14 +299,17 @@ def calculate_dcf():
         }
         
         flash(f'DCF calculation completed for {ticker}!', 'success')
-        return render_template('dcf.html', result=result, **request.form)
+        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        return render_template('dcf.html', result=result, saved_analyses=saved_analyses, **request.form)
         
     except ValueError as e:
         flash(f'Calculation error: {str(e)}', 'danger')
-        return render_template('dcf.html', **request.form)
+        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
     except Exception as e:
         flash(f'An error occurred: {str(e)}', 'danger')
-        return render_template('dcf.html', **request.form)
+        saved_analyses = DCFAnalysis.query.order_by(DCFAnalysis.date_created.desc()).all()
+        return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
 
 @app.route('/save-dcf-analysis', methods=['POST'])
 @login_required
