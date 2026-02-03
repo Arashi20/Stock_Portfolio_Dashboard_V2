@@ -250,19 +250,20 @@ def calculate_dcf():
         
         # Validate ticker exists using yfinance
         info = None
+        ticker_valid = False
         try:
             stock = yf.Ticker(ticker)
             # Try to get basic info to validate ticker exists
             info = stock.info
             # Check if ticker is valid by verifying we got meaningful data
             # We check for 'symbol' or 'shortName' as indicators of a valid ticker
-            if not info or (not info.get('symbol') and not info.get('shortName')):
-                logger.warning(f"Invalid ticker symbol: {ticker}")
-                flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
-                saved_analyses = get_saved_dcf_analyses()
-                return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
+            if info and (info.get('symbol') or info.get('shortName')):
+                ticker_valid = True
         except Exception as e:
             logger.error(f"Ticker validation error for {ticker}: {e}")
+        
+        if not ticker_valid:
+            logger.warning(f"Invalid ticker symbol: {ticker}")
             flash(f'Invalid ticker symbol: {ticker}. Please enter a valid stock ticker.', 'danger')
             saved_analyses = get_saved_dcf_analyses()
             return render_template('dcf.html', saved_analyses=saved_analyses, **request.form)
