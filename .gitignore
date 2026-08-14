@@ -86,3 +86,6 @@ instance/
 # Github instructions
 .github/instructions/
 
+# Claude Instructions
+.claude
+
