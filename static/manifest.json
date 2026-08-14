@@ -1,0 +1,24 @@
+{
+  "name": "Stock Analysis Dashboard",
+  "short_name": "AmStocks",
+  "description": "Personal stock analysis tool for DCF valuations, tracking watchlist stocks, and managing research reports",
+  "start_url": "https://www.amstocks.nl/login?next=%2F",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "orientation": "any",
+  "icons": [
+    {
+      "src": "icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
