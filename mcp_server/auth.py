@@ -33,6 +33,7 @@ from starlette.responses import HTMLResponse, RedirectResponse, Response
 import db
 
 ACCESS_TOKEN_TTL_SECONDS = 3600
+DEFAULT_SCOPES = ["reports:write", "wishlist:write"]
 
 
 class StockDashboardOAuthProvider(OAuthAuthorizationServerProvider[AuthorizationCode, RefreshToken, AccessToken]):
@@ -79,7 +80,10 @@ class StockDashboardOAuthProvider(OAuthAuthorizationServerProvider[Authorization
             redirect_uri=str(params.redirect_uri),
             redirect_uri_provided_explicitly=params.redirect_uri_provided_explicitly,
             code_challenge=params.code_challenge,
-            scopes=params.scopes or [],
+            # Claude's connector flow doesn't send an explicit `scope` param -- grant the
+            # full default set in that case rather than an empty (and therefore useless,
+            # given required_scopes) grant.
+            scopes=params.scopes or DEFAULT_SCOPES,
             resource=params.resource,
         )
         return f"{self.public_url}/login?state={state}"
