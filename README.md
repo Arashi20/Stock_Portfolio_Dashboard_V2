@@ -47,6 +47,19 @@ This is a lightweight, personal-use web application designed to streamline stock
 
 ![Stock Reports](static/Stock_Report_Screenshot.png)
 
+### 🏛️ 13F Filings
+- Browse institutional investors' quarterly holdings straight from SEC's official API
+- Full portfolio sorted by position weight, with tickers resolved from CUSIPs
+- Quarter-over-quarter diff: new buys, added, trimmed, and positions sold out completely
+- Filter to just new buys for idea generation
+- Search all ~8,800 funds that file 13F, from a bundled index (`sec/filers.csv`)
+- Quick-pick chips for favourite funds, configured in `sec/funds.py`
+
+> **What 13F data is and isn't:** filings are due 45 days after quarter-end and cover
+> long US-listed equity positions only — no shorts, bonds, foreign listings or cash.
+> Everyone gets the data at the same moment, so it's a source of names to research,
+> not a way to get ahead of the market.
+
 ### 🏠 Home Page
 - Clean dashboard interface
 - Quick access to all features
@@ -73,6 +86,9 @@ This is a lightweight, personal-use web application designed to streamline stock
 
 ### APIs & Libraries
 - **yfinance 0.2.65** - Real-time stock price data from Yahoo Finance
+- **SEC data.sec.gov** - Official 13F institutional holdings (no API key; requires a
+  `SEC_USER_AGENT` with your name and email on every request)
+- **OpenFIGI** - Maps CUSIPs from 13F filings to tickers (free, no key required)
 - **python-dotenv 1.0.0** - Environment variable management
 - **Gunicorn 21.2.0** - WSGI HTTP server for production
 
@@ -134,6 +150,12 @@ Stock_Dashboard_App_NEW_VERSION/
 ├── .gitignore                  # Git ignore rules
 ├── dcf/
 │   └── dcf_default.py         # DCF calculation logic
+├── sec/
+│   ├── sec_client.py          # SEC 13F fetching, parsing & quarter diffing
+│   ├── filers.py              # Search across all 13F filers
+│   ├── filers.csv             # Bundled index of ~8,800 filers (name -> CIK)
+│   ├── build_filer_index.py   # Regenerates filers.csv from SEC's data set
+│   └── funds.py               # Favourite funds shown as quick picks
 ├── templates/
 │   ├── base.html              # Base template with sidebar & modals
 │   ├── home.html              # Homepage
@@ -143,10 +165,12 @@ Stock_Dashboard_App_NEW_VERSION/
 │   ├── reports.html           # Reports listing page
 │   ├── view_report.html       # Individual report view
 │   ├── edit_report.html       # Report editor
+│   ├── filings.html           # 13F filings page
 │   └── sidebar.html           # Navigation sidebar
 ├── static/
-│   ├── styles.css             # Main stylesheet (1900+ lines)
+│   ├── styles.css             # Main stylesheet (2700+ lines)
 │   ├── dcf.js                 # DCF page JavaScript
+│   ├── filings.js             # 13F page JavaScript
 │   ├── favicon.ico            # Site favicon
 │   └── *.png                  # Screenshots for README
 └── instance/

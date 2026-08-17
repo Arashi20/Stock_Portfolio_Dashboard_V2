@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}13F Filings - Stock Dashboard{% endblock %}
+
+{% block content %}
+<div class="filings-page">
+    <div class="page-header">
+        <h1 class="filings-page-title">
+            <i class="fas fa-building-columns"></i>
+            13F Filings
+        </h1>
+        <p class="page-description">See what institutional investors hold and what they bought or sold last quarter</p>
+    </div>
+
+    <div class="filings-container">
+        <!-- Fund Selector -->
+        <div class="filings-input-section">
+            <div class="section-card">
+                <h2 class="section-heading">
+                    <i class="fas fa-search"></i>
+                    Look Up a Fund
+                </h2>
+
+                {% if not sec_configured %}
+                <div class="alert alert-warning">
+                    <span><strong>SEC_USER_AGENT is not set.</strong> SEC requires a User-Agent with your name and email on every request. Add it to your <code>.env</code> file and restart before looking anything up.</span>
+                </div>
+                {% endif %}
+
+                <div class="form-group filings-search-group">
+                    <label for="fundSearch">
+                        <i class="fas fa-landmark"></i>
+                        Fund name or CIK
+                    </label>
+                    <input
+                        type="text"
+                        id="fundSearch"
+                        class="form-control"
+                        placeholder="Search {{ '{:,}'.format(filer_count) }} funds that file 13F, e.g. Broyhill"
+                        autocomplete="off"
+                        {% if not sec_configured %}disabled{% endif %}
+                    >
+                    <div id="searchResults" class="filings-search-results"></div>
+                </div>
+
+                <div class="filings-favourites">
+                    <span class="filings-favourites-label">Quick picks:</span>
+                    {% for fund in favourites %}
+                    <button type="button" class="filings-chip" data-cik="{{ fund.cik }}" data-name="{{ fund.name }}" {% if not sec_configured %}disabled{% endif %}>
+                        {{ fund.name }}
+                    </button>
+                    {% endfor %}
+                </div>
+
+                <div class="filings-disclaimer">
+                    <i class="fas fa-circle-info"></i>
+                    <span>13F filings are due 45 days after quarter-end and cover long US-listed equity positions only &mdash; no shorts, bonds, foreign listings or cash. Treat this as a source of names to research, not a trade signal.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Results (populated by filings.js) -->
+        <div id="filingsResults"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='filings.js') }}"></script>
+{% endblock %}

@@ -10,6 +10,9 @@ import bleach
 import logging
 from bleach.css_sanitizer import CSSSanitizer
 from dcf.dcf_default import dcf_valuation_advanced
+from sec import filers as sec_filers
+from sec import funds as sec_funds
+from sec.sec_client import SecClientError, get_fund_snapshot
 
 # Load environment variables from .env file
 load_dotenv()
@@ -32,6 +35,14 @@ HARDCODED_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'stockanalysis2026')
 
 # OpenExchange API Key for currency conversion
 OPENEXCHANGE_API_KEY = os.environ.get('OPENEXCHANGE_API_KEY', '')
+
+# SEC requires a User-Agent identifying the requester (name + email) on every
+# request to its APIs, or it returns 403. Not a secret, but kept out of the repo
+# so the email isn't published on GitHub.
+SEC_USER_AGENT = os.environ.get('SEC_USER_AGENT', '')
+
+# Optional: raises OpenFIGI's ticker-lookup rate limit. Works fine without one.
+OPENFIGI_API_KEY = os.environ.get('OPENFIGI_API_KEY', '')
 
 # Initialize database
 db = SQLAlchemy(app)
@@ -589,6 +600,63 @@ def delete_wishlist(id):
         flash(f'Error removing from wishlist: {str(e)}', 'danger')
     
     return redirect(url_for('wishlist'))
+
+@app.route('/filings')
+@login_required
+def filings():
+    """13F filings page - search any fund and see what it holds"""
+    return render_template(
+        'filings.html',
+        favourites=sec_funds.all_funds(),
+        filer_count=sec_filers.count(),
+        sec_configured=bool(SEC_USER_AGENT)
+    )
+
+
+@app.route('/api/13f/search')
+@login_required
+def filings_search():
+    """API endpoint to search the bundled index of 13F filers by name or CIK"""
+    query = request.args.get('q', '')
+    return jsonify({'results': sec_filers.search(query)})
+
+
+@app.route('/api/13f/cik/<cik>')
+@login_required
+def filings_lookup(cik):
+    """API endpoint returning a fund's latest 13F holdings, diffed vs last quarter"""
+    if not cik.isdigit():
+        return jsonify({'error': 'CIK must be numeric.'}), 400
+
+    if not SEC_USER_AGENT:
+        return jsonify({
+            'error': 'SEC_USER_AGENT is not configured. Set it to your name and '
+                     'email (SEC requires this on every request) and restart.'
+        }), 503
+
+    try:
+        snapshot = get_fund_snapshot(
+            cik,
+            SEC_USER_AGENT,
+            figi_api_key=OPENFIGI_API_KEY or None
+        )
+    except SecClientError as e:
+        logger.error(f'SEC lookup failed for CIK {cik}: {e}')
+        return jsonify({'error': str(e)}), 502
+    except Exception as e:
+        logger.error(f'Unexpected error in 13F lookup for CIK {cik}: {e}')
+        return jsonify({'error': f'Unexpected error fetching filings: {e}'}), 500
+
+    if not snapshot.get('has_filings'):
+        return jsonify({
+            'error': f'{snapshot["name"]} has no 13F-HR filings on record. Managers '
+                     'below $100M in US-listed equities are not required to file.'
+        }), 404
+
+    logger.info(f'13F lookup for CIK {cik}: {snapshot["position_count"]} positions '
+                f'for quarter {snapshot["quarter"]}')
+    return jsonify(snapshot)
+
 
 # Initialize database tables
 with app.app_context():

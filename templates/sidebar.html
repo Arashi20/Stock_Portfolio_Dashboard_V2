@@ -27,7 +27,12 @@
             <i class="fas fa-star"></i>
             <span>Wishlist</span>
         </a>
-        
+
+        <a href="{{ url_for('filings') }}" class="nav-link {% if request.endpoint == 'filings' %}active{% endif %}">
+            <i class="fas fa-building-columns"></i>
+            <span>13F Filings</span>
+        </a>
+
         <div style="margin-top: auto; padding: 0 1.5rem;">
             <a href="{{ url_for('logout') }}" class="nav-link" style="color: #f87171; margin-top: 2rem;">
                 <i class="fas fa-sign-out-alt"></i>
