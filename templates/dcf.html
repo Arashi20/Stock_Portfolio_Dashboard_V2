@@ -266,11 +266,11 @@
                         </div>
                         <div class="summary-item">
                             <span class="label">Free Cash Flow:</span>
-                            <span class="value">{{ "{:,.0f}".format(result.free_cash_flow) }}</span>
+                            <span class="value">{{ result.free_cash_flow|smart_number }}</span>
                         </div>
                         <div class="summary-item">
                             <span class="label">Shares Outstanding:</span>
-                            <span class="value">{{ "{:,.0f}".format(result.shares_outstanding) }}</span>
+                            <span class="value">{{ result.shares_outstanding|smart_number }}</span>
                         </div>
                         <div class="summary-item">
                             <span class="label">Growth Rate (1-5 yrs):</span>
@@ -348,8 +348,8 @@
                             <tr>
                                 <td>{{ analysis.date_created.strftime('%Y-%m-%d %H:%M') }}</td>
                                 <td><strong><a href="https://finance.yahoo.com/quote/{{ analysis.ticker }}" target="_blank" style="color: inherit; text-decoration: none;">{{ analysis.ticker }} <i class="fas fa-external-link-alt" style="font-size: 0.7em; opacity: 0.6;"></i></a></strong></td>
-                                <td>{{ "{:,.0f}".format(analysis.free_cash_flow) }}</td>
-                                <td>{{ "{:,.0f}".format(analysis.shares_outstanding) }}</td>
+                                <td>{{ analysis.free_cash_flow|smart_number }}</td>
+                                <td>{{ analysis.shares_outstanding|smart_number }}</td>
                                 <td>{{ analysis.growth_rate_5yr }}%</td>
                                 <td>{{ analysis.growth_rate_6_10yr }}%</td>
                                 <td>{{ analysis.terminal_growth_rate }}%</td>

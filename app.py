@@ -94,6 +94,26 @@ def sanitize_html(html_content):
     )
     return cleaned_html
 
+# Number formatting helper for templates
+@app.template_filter('smart_number')
+def smart_number(value, max_decimals=4):
+    """Format a number with thousands separators, keeping decimals only when they
+    carry information. 10.0 -> "10", 2.4 -> "2.4", 0.4 -> "0.4", 74000.0 -> "74,000".
+
+    Used for the DCF free cash flow / share count figures, which are entered in
+    millions or billions and are often fractional -- rounding those to a whole
+    number would render 0.4 as "0".
+    """
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return value
+
+    formatted = f"{number:,.{max_decimals}f}"
+    if '.' in formatted:
+        formatted = formatted.rstrip('0').rstrip('.')
+    return formatted
+
 # Currency conversion helper function
 def convert_to_eur(amount, currency_symbol):
     """Convert amount from given currency symbol to EUR"""
