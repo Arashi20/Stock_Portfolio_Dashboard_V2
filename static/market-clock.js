@@ -13,38 +13,137 @@
 
     const NY_TZ = 'America/New_York';
 
-    // Full-day closures for the NYSE / Nasdaq, as YYYY-MM-DD in New York time.
-    const MARKET_HOLIDAYS = new Set([
-        // 2026
-        '2026-01-01', // New Year's Day
-        '2026-01-19', // Martin Luther King Jr. Day
-        '2026-02-16', // Washington's Birthday
-        '2026-04-03', // Good Friday
-        '2026-05-25', // Memorial Day
-        '2026-06-19', // Juneteenth
-        '2026-07-03', // Independence Day (observed)
-        '2026-09-07', // Labor Day
-        '2026-11-26', // Thanksgiving
-        '2026-12-25', // Christmas Day
-        // 2027
-        '2027-01-01',
-        '2027-01-18',
-        '2027-02-15',
-        '2027-03-26',
-        '2027-05-31',
-        '2027-06-18',
-        '2027-07-05',
-        '2027-09-06',
-        '2027-11-25',
-        '2027-12-24'
-    ]);
+    /*
+     * NYSE / Nasdaq closures are derived from the calendar rather than kept in
+     * a hand-written table, so the countdown doesn't silently start promising
+     * sessions on Christmas Day once a hardcoded list runs out. Every closure
+     * the exchange schedules by rule is covered. Unscheduled closures - a
+     * national day of mourning, a hurricane - are by nature unpredictable and
+     * are not handled.
+     */
 
-    // Days the market closes at 13:00 ET instead of 16:00 ET.
-    const EARLY_CLOSES = new Set([
-        '2026-11-27', // day after Thanksgiving
-        '2026-12-24', // Christmas Eve
-        '2027-11-26'
-    ]);
+    /* Saturday holidays are observed on the preceding Friday, Sunday ones on
+     * the following Monday. */
+    function observed(year, month, day) {
+        const date = new Date(Date.UTC(year, month - 1, day));
+        const weekday = date.getUTCDay();
+        if (weekday === 6) {
+            date.setUTCDate(date.getUTCDate() - 1);
+        } else if (weekday === 0) {
+            date.setUTCDate(date.getUTCDate() + 1);
+        }
+        return date;
+    }
+
+    /* The nth given weekday of a month; n = -1 means the last one. */
+    function nthWeekdayOfMonth(year, month, weekday, n) {
+        if (n > 0) {
+            const first = new Date(Date.UTC(year, month - 1, 1));
+            const shift = (weekday - first.getUTCDay() + 7) % 7;
+            return new Date(Date.UTC(year, month - 1, 1 + shift + (n - 1) * 7));
+        }
+        const last = new Date(Date.UTC(year, month, 0));
+        const back = (last.getUTCDay() - weekday + 7) % 7;
+        last.setUTCDate(last.getUTCDate() - back);
+        return last;
+    }
+
+    /* Easter Sunday, via the anonymous Gregorian computus. Needed because Good
+     * Friday is the one market holiday with no fixed-calendar rule. */
+    function easterSunday(year) {
+        const a = year % 19;
+        const b = Math.floor(year / 100);
+        const c = year % 100;
+        const d = Math.floor(b / 4);
+        const e = b % 4;
+        const f = Math.floor((b + 8) / 25);
+        const g = Math.floor((b - f + 1) / 3);
+        const h = (19 * a + b - d - g + 15) % 30;
+        const i = Math.floor(c / 4);
+        const j = c % 4;
+        const l = (32 + 2 * e + 2 * i - h - j) % 7;
+        const m = Math.floor((a + 11 * h + 22 * l) / 451);
+        const month = Math.floor((h + l - 7 * m + 114) / 31);
+        const day = ((h + l - 7 * m + 114) % 31) + 1;
+        return new Date(Date.UTC(year, month - 1, day));
+    }
+
+    function toKey(date) {
+        return date.toISOString().slice(0, 10);
+    }
+
+    function isWeekday(date) {
+        const weekday = date.getUTCDay();
+        return weekday !== 0 && weekday !== 6;
+    }
+
+    function buildHolidays(year) {
+        const days = [
+            nthWeekdayOfMonth(year, 1, 1, 3),                            // MLK Jr. Day
+            nthWeekdayOfMonth(year, 2, 1, 3),                            // Washington's Birthday
+            new Date(easterSunday(year).getTime() - 2 * 86400000),       // Good Friday
+            nthWeekdayOfMonth(year, 5, 1, -1),                           // Memorial Day
+            observed(year, 6, 19),                                       // Juneteenth
+            observed(year, 7, 4),                                        // Independence Day
+            nthWeekdayOfMonth(year, 9, 1, 1),                            // Labor Day
+            nthWeekdayOfMonth(year, 11, 4, 4),                           // Thanksgiving
+            observed(year, 12, 25)                                       // Christmas Day
+        ];
+        // New Year's Day is the one exception to the observance rule: when it
+        // falls on a Saturday the exchange stays open the preceding Friday
+        // rather than closing on New Year's Eve.
+        if (new Date(Date.UTC(year, 0, 1)).getUTCDay() !== 6) {
+            days.push(observed(year, 1, 1));
+        }
+        return new Set(days.map(toKey));
+    }
+
+    function buildEarlyCloses(year) {
+        const days = [];
+
+        // The Friday after Thanksgiving.
+        const thanksgiving = nthWeekdayOfMonth(year, 11, 4, 4);
+        days.push(new Date(thanksgiving.getTime() + 86400000));
+
+        // July 3rd, but only when both it and the 4th are weekdays - otherwise
+        // the 3rd is either a weekend or the observed holiday itself.
+        const julyThird = new Date(Date.UTC(year, 6, 3));
+        if (isWeekday(julyThird) && isWeekday(new Date(Date.UTC(year, 6, 4)))) {
+            days.push(julyThird);
+        }
+
+        // Christmas Eve, when it falls Monday to Thursday. On a Friday the 25th
+        // is a Saturday, which makes the 24th the observed holiday instead.
+        const christmasEve = new Date(Date.UTC(year, 11, 24));
+        const eveWeekday = christmasEve.getUTCDay();
+        if (eveWeekday >= 1 && eveWeekday <= 4) {
+            days.push(christmasEve);
+        }
+
+        return new Set(days.map(toKey));
+    }
+
+    // isTradingDay runs several times per tick, so results are cached per year
+    // rather than recomputed on every pass.
+    const holidayCache = new Map();
+    const earlyCloseCache = new Map();
+
+    function cached(cache, year, build) {
+        let value = cache.get(year);
+        if (!value) {
+            value = build(year);
+            cache.set(year, value);
+        }
+        return value;
+    }
+
+    function isMarketHoliday(fields) {
+        return cached(holidayCache, fields.year, buildHolidays).has(dayKey(fields));
+    }
+
+    function isEarlyClose(fields) {
+        return cached(earlyCloseCache, fields.year, buildEarlyCloses).has(dayKey(fields));
+    }
 
     const OPEN_MINUTES = 9 * 60 + 30;        // 09:30 ET
     const CLOSE_MINUTES = 16 * 60;           // 16:00 ET
@@ -130,11 +229,11 @@
         if (weekday === 0 || weekday === 6) {
             return false;
         }
-        return !MARKET_HOLIDAYS.has(dayKey(fields));
+        return !isMarketHoliday(fields);
     }
 
     function closeMinutesFor(fields) {
-        return EARLY_CLOSES.has(dayKey(fields)) ? EARLY_CLOSE_MINUTES : CLOSE_MINUTES;
+        return isEarlyClose(fields) ? EARLY_CLOSE_MINUTES : CLOSE_MINUTES;
     }
 
     /* The New York calendar day `offset` days after the one in `fields`. */
