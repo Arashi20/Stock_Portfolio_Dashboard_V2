@@ -2,7 +2,7 @@
 
 Shares the same Postgres database as the main Flask app (same DATABASE_URL) using
 plain SQLAlchemy -- there's no Flask app in this service, so Flask-SQLAlchemy isn't
-usable here. `Report` and `Wishlist` below are a structural mirror of the models in
+usable here. `DCFAnalysis`, `Report` and `Wishlist` below are a structural mirror of the models in
 ../app.py (same table/column names). This service never creates or migrates those
 tables -- app.py's db.create_all() remains the only owner of that schema. If those
 models ever change in app.py, mirror the change here too.
@@ -18,6 +18,8 @@ from bleach.css_sanitizer import CSSSanitizer
 from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Text, create_engine
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import declarative_base, sessionmaker
+
+from dcf_calc import dcf_valuation_advanced
 
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///mcp_local.db")
 
@@ -40,8 +42,25 @@ def session_scope():
 
 
 # ---------------------------------------------------------------------------
-# KEEP IN SYNC WITH app.py's Report/Wishlist models
+# KEEP IN SYNC WITH app.py's DCFAnalysis/Report/Wishlist models
 # ---------------------------------------------------------------------------
+
+class DCFAnalysis(Base):
+    __tablename__ = "dcf_analysis"
+
+    id = Column(Integer, primary_key=True)
+    ticker = Column(String(10), nullable=False)
+    free_cash_flow = Column(Float, nullable=False)
+    growth_rate_5yr = Column(Float, nullable=False)
+    growth_rate_6_10yr = Column(Float, nullable=False)
+    terminal_growth_rate = Column(Float, nullable=False)
+    discount_rate = Column(Float, nullable=False)
+    shares_outstanding = Column(Float, nullable=False)
+    share_dilution = Column(Float, nullable=False)
+    intrinsic_value = Column(Float, nullable=False)
+    currency = Column(String(10), default="$")
+    date_created = Column(DateTime, default=datetime.utcnow)
+
 
 class Report(Base):
     __tablename__ = "report"
@@ -115,7 +134,7 @@ class OAuthTokenRecord(Base):
 
 
 def init_oauth_tables():
-    """Create only the tables this service owns. Never touches report/wishlist."""
+    """Create only the tables this service owns. Never touches dcf_analysis/report/wishlist."""
     Base.metadata.create_all(bind=engine, tables=[
         OAuthLoginState.__table__,
         OAuthAuthCode.__table__,
@@ -146,8 +165,8 @@ def sanitize_html(html_content):
 
 
 # ---------------------------------------------------------------------------
-# Report / Wishlist query helpers used by the MCP tools in server.py.
-# Validation mirrors app.py's create_report/add_to_wishlist routes exactly.
+# DCF / Report / Wishlist query helpers used by the MCP tools in server.py.
+# Validation mirrors app.py's calculate_dcf/create_report/add_to_wishlist routes exactly.
 # ---------------------------------------------------------------------------
 
 class ValidationError(Exception):
@@ -156,6 +175,102 @@ class ValidationError(Exception):
 
 class DuplicateTickerError(Exception):
     """Raised when a wishlist ticker already exists."""
+
+
+def _as_float(value, field: str) -> float:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        raise ValidationError(f"{field} must be a number.")
+
+
+def create_dcf_analysis(ticker: str, free_cash_flow: float, growth_rate_5yr: float,
+                        growth_rate_6_10yr: float, terminal_growth_rate: float,
+                        discount_rate: float, shares_outstanding: float,
+                        share_dilution: float = 0.0, currency: str = "$") -> dict:
+    """Run the DCF model and save the result, exactly as the /calculate-dcf +
+    /save-dcf-analysis pair does in app.py. intrinsic_value is always computed
+    here rather than accepted from the caller, so a saved row can never disagree
+    with the model the DCF page shows."""
+    ticker = (ticker or "").upper().strip()
+    if not ticker:
+        raise ValidationError("ticker is required.")
+    if len(ticker) > 10:
+        raise ValidationError("ticker must be 10 characters or fewer.")
+
+    free_cash_flow = _as_float(free_cash_flow, "free_cash_flow")
+    growth_rate_5yr = _as_float(growth_rate_5yr, "growth_rate_5yr")
+    growth_rate_6_10yr = _as_float(growth_rate_6_10yr, "growth_rate_6_10yr")
+    terminal_growth_rate = _as_float(terminal_growth_rate, "terminal_growth_rate")
+    discount_rate = _as_float(discount_rate, "discount_rate")
+    shares_outstanding = _as_float(shares_outstanding, "shares_outstanding")
+    share_dilution = _as_float(share_dilution if share_dilution is not None else 0.0, "share_dilution")
+
+    if shares_outstanding <= 0:
+        raise ValidationError("shares_outstanding must be a positive number.")
+    if discount_rate <= terminal_growth_rate:
+        raise ValidationError("discount_rate must be greater than terminal_growth_rate.")
+
+    try:
+        intrinsic_value = dcf_valuation_advanced(
+            initial_fcf=free_cash_flow,
+            growth_rate_1_5=growth_rate_5yr,
+            growth_rate_6_10=growth_rate_6_10yr,
+            discount_rate=discount_rate,
+            terminal_growth_rate=terminal_growth_rate,
+            shares_outstanding=shares_outstanding,
+            share_change_rate=share_dilution,
+        )
+    except ValueError as e:
+        raise ValidationError(str(e))
+    except ZeroDivisionError:
+        raise ValidationError("Inputs produce a division by zero -- check the share dilution rate.")
+
+    currency = (currency or "$").strip() or "$"
+
+    with session_scope() as session:
+        analysis = DCFAnalysis(
+            ticker=ticker,
+            free_cash_flow=free_cash_flow,
+            growth_rate_5yr=growth_rate_5yr,
+            growth_rate_6_10yr=growth_rate_6_10yr,
+            terminal_growth_rate=terminal_growth_rate,
+            discount_rate=discount_rate,
+            shares_outstanding=shares_outstanding,
+            share_dilution=share_dilution,
+            intrinsic_value=intrinsic_value,
+            currency=currency,
+        )
+        session.add(analysis)
+        session.flush()
+        return _dcf_to_dict(analysis)
+
+
+def list_dcf_analyses(ticker: str | None = None, limit: int = 20) -> list[dict]:
+    limit = max(1, min(limit, 100))
+    with session_scope() as session:
+        query = session.query(DCFAnalysis)
+        if ticker:
+            query = query.filter(DCFAnalysis.ticker == ticker.upper().strip())
+        rows = query.order_by(DCFAnalysis.date_created.desc()).limit(limit).all()
+        return [_dcf_to_dict(row) for row in rows]
+
+
+def _dcf_to_dict(row: DCFAnalysis) -> dict:
+    return {
+        "id": row.id,
+        "ticker": row.ticker,
+        "free_cash_flow": row.free_cash_flow,
+        "growth_rate_5yr": row.growth_rate_5yr,
+        "growth_rate_6_10yr": row.growth_rate_6_10yr,
+        "terminal_growth_rate": row.terminal_growth_rate,
+        "discount_rate": row.discount_rate,
+        "shares_outstanding": row.shares_outstanding,
+        "share_dilution": row.share_dilution,
+        "intrinsic_value": round(row.intrinsic_value, 2),
+        "currency": row.currency,
+        "date_created": row.date_created.strftime("%Y-%m-%d %H:%M") if row.date_created else None,
+    }
 
 
 def create_report(ticker: str, title: str, date_str: str, notes: str) -> dict:
