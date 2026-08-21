@@ -244,6 +244,136 @@ body {
     margin-bottom: 2rem;
 }
 
+/* US Market Hours Countdown */
+.market-clock-section {
+    margin-bottom: 4rem;
+}
+
+.market-clock {
+    background: var(--surface);
+    border: 2px solid var(--border-color);
+    border-left: 6px solid var(--secondary-color);
+    border-radius: 12px;
+    padding: 1.75rem 2rem;
+    box-shadow: var(--shadow-sm);
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem 2.5rem;
+    transition: var(--transition);
+}
+
+.market-clock.is-open {
+    border-left-color: var(--success-color);
+}
+
+.market-clock.is-pre,
+.market-clock.is-after {
+    border-left-color: var(--warning-color);
+}
+
+.market-clock.is-closed {
+    border-left-color: var(--secondary-color);
+}
+
+.market-clock-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.market-clock-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.market-clock-label {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.market-clock-label i {
+    color: var(--primary-color);
+}
+
+.market-status {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: rgba(100, 116, 139, 0.12);
+    color: var(--secondary-color);
+}
+
+.market-clock.is-open .market-status {
+    background: rgba(16, 185, 129, 0.12);
+    color: var(--success-color);
+}
+
+.market-clock.is-pre .market-status,
+.market-clock.is-after .market-status {
+    background: rgba(245, 158, 11, 0.14);
+    color: var(--warning-color);
+}
+
+.market-countdown {
+    display: flex;
+    align-items: baseline;
+    gap: 0.75rem;
+}
+
+.market-countdown-label {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.market-countdown-timer {
+    font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 2.25rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--text-primary);
+    font-variant-numeric: tabular-nums;
+}
+
+.market-clock-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 260px;
+}
+
+.market-detail {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.market-detail i {
+    width: 1rem;
+    text-align: center;
+    color: var(--primary-color);
+}
+
+.market-detail--muted {
+    font-size: 0.8125rem;
+    opacity: 0.8;
+}
+
+.market-detail--muted:empty {
+    display: none;
+}
+
 /* Quick Actions Cards */
 .quick-actions {
     margin-bottom: 4rem;
@@ -699,7 +829,16 @@ body {
     .action-cards {
         grid-template-columns: 1fr;
     }
-    
+
+    .market-clock {
+        padding: 1.5rem;
+        gap: 1.25rem;
+    }
+
+    .market-clock-details {
+        min-width: 0;
+    }
+
     .features-grid {
         grid-template-columns: 1fr;
         gap: 1.5rem;
@@ -725,6 +864,10 @@ body {
     
     .action-card {
         padding: 1.5rem;
+    }
+
+    .market-countdown-timer {
+        font-size: 1.75rem;
     }
 
     .strategy-item {
