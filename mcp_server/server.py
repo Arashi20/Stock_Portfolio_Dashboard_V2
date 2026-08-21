@@ -1,9 +1,11 @@
 """Remote MCP server for the Stock Dashboard app.
 
-Exposes create_report / add_wishlist_item / list_wishlist / list_reports as MCP tools
-over Streamable HTTP, gated behind the OAuth 2.1 + PKCE provider in auth.py. Deployed
-as its own Railway service (see mcp_server/Procfile), sharing the main app's Postgres
-database (DATABASE_URL) but never touching the main app's table schema/migrations.
+Exposes create_report / add_wishlist_item / create_dcf_analysis / list_reports /
+list_wishlist / list_dcf_analyses as MCP tools over Streamable HTTP, gated behind the
+OAuth 2.1 + PKCE provider in auth.py. Nothing here can delete: the tools are read and
+create only. Deployed as its own Railway service (see mcp_server/Procfile), sharing
+the main app's Postgres database (DATABASE_URL) but never touching the main app's
+table schema/migrations.
 """
 
 import asyncio
@@ -39,7 +41,10 @@ auth_settings = AuthSettings(
 
 app = MCPServer(
     name="stock-dashboard",
-    instructions="Create and look up reports and wishlist items in Arash's personal stock dashboard app.",
+    instructions=(
+        "Create and look up reports, wishlist items and DCF valuations in Arash's "
+        "personal stock dashboard app."
+    ),
     auth_server_provider=oauth_provider,
     auth=auth_settings,
 )
@@ -88,6 +93,62 @@ async def add_wishlist_item(ticker: str, target_price: float, currency: str = "$
         return await asyncio.to_thread(db.add_wishlist_item, ticker, target_price, currency)
     except (db.ValidationError, db.DuplicateTickerError) as e:
         return {"error": str(e)}
+
+
+@app.tool()
+async def create_dcf_analysis(
+    ticker: str,
+    free_cash_flow: float,
+    growth_rate_5yr: float,
+    growth_rate_6_10yr: float,
+    terminal_growth_rate: float,
+    discount_rate: float,
+    shares_outstanding: float,
+    share_dilution: float = 0.0,
+    currency: str = "$",
+) -> dict:
+    """Run a 10-year, 2-stage DCF valuation and save it to the DCF page.
+
+    The intrinsic value per share is calculated server-side with the same model the
+    DCF page uses -- don't try to pass one in. free_cash_flow and shares_outstanding
+    must be expressed in the SAME unit (e.g. both in millions: 10000 FCF and 5000
+    shares means $10B FCF on 5B shares), otherwise the per-share result is wrong.
+
+    Args:
+        ticker: Stock ticker symbol, e.g. "AAPL". Max 10 characters.
+        free_cash_flow: Current/average annual free cash flow, in millions or billions.
+        growth_rate_5yr: Expected annual FCF growth for years 1-5, in percent, e.g. 12.0.
+        growth_rate_6_10yr: Expected annual FCF growth for years 6-10, in percent, e.g. 10.0.
+        terminal_growth_rate: Perpetual growth rate after year 10, in percent, e.g. 2.0.
+            Must be lower than discount_rate.
+        discount_rate: Required rate of return / WACC, in percent, e.g. 12.0.
+        shares_outstanding: Share count, in the same unit as free_cash_flow.
+        share_dilution: Annual change in share count, in percent -- positive dilutes,
+            negative is a buyback. Defaults to 0.
+        currency: Currency symbol, e.g. "$", "€", "£". Defaults to "$".
+    """
+    try:
+        return await asyncio.to_thread(
+            db.create_dcf_analysis, ticker, free_cash_flow, growth_rate_5yr,
+            growth_rate_6_10yr, terminal_growth_rate, discount_rate,
+            shares_outstanding, share_dilution, currency,
+        )
+    except db.ValidationError as e:
+        return {"error": str(e)}
+
+
+@app.tool()
+async def list_dcf_analyses(ticker: str | None = None, limit: int = 20) -> list[dict]:
+    """List saved DCF analyses with their inputs and resulting intrinsic value per share.
+
+    Use this to see what valuations already exist, or to read back the assumptions
+    behind one, before running a new analysis.
+
+    Args:
+        ticker: Optional ticker symbol to filter by.
+        limit: Max number of analyses to return (default 20, max 100).
+    """
+    return await asyncio.to_thread(db.list_dcf_analyses, ticker, limit)
 
 
 @app.tool()
