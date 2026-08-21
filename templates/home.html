@@ -10,6 +10,37 @@
         <p class="page-subtitle">Analyze stocks with DCF models, track your research, and manage your watchlist - all in one place.</p>
     </section>
 
+    <!-- US Market Hours Countdown -->
+    <section class="market-clock-section">
+        <div class="market-clock" id="marketClock">
+            <div class="market-clock-main">
+                <div class="market-clock-heading">
+                    <span class="market-clock-label"><i class="fas fa-bell"></i> US Markets</span>
+                    <span class="market-status" data-market-status>--</span>
+                </div>
+                <div class="market-countdown">
+                    <span class="market-countdown-label" data-market-countdown-label>Opens in</span>
+                    <span class="market-countdown-timer" data-market-countdown>--:--:--</span>
+                </div>
+            </div>
+            <div class="market-clock-details">
+                <div class="market-detail">
+                    <i class="fas fa-building-columns"></i>
+                    <span>NYSE &amp; Nasdaq &middot; 09:30 - 16:00 ET</span>
+                </div>
+                <div class="market-detail">
+                    <i class="fas fa-globe-europe"></i>
+                    <span data-market-local-hours>--</span>
+                </div>
+                <div class="market-detail">
+                    <i class="fas fa-clock"></i>
+                    <span data-market-ny-clock>--</span>
+                </div>
+                <div class="market-detail market-detail--muted" data-market-next-session></div>
+            </div>
+        </div>
+    </section>
+
     <!-- Quick Actions -->
     <section class="quick-actions">
         <h2 class="section-title">Quick Actions</h2>
@@ -275,4 +306,8 @@
     </section>
 
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='market-clock.js') }}"></script>
 {% endblock %}
