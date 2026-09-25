@@ -11,7 +11,7 @@ models ever change in app.py, mirror the change here too.
 import os
 import time
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import bleach
 from bleach.css_sanitizer import CSSSanitizer
@@ -379,8 +379,16 @@ def save_login_state(state, client_id, redirect_uri, redirect_uri_provided_expli
         ))
 
 
+LOGIN_STATE_TTL = timedelta(minutes=10)
+
+
 def pop_login_state(state):
     with session_scope() as session:
+        # Pending logins are only needed for the redirect round-trip; drop stale ones
+        # so abandoned /authorize requests don't pile up or stay usable forever.
+        session.query(OAuthLoginState).filter(
+            OAuthLoginState.created_at < datetime.utcnow() - LOGIN_STATE_TTL
+        ).delete()
         row = session.query(OAuthLoginState).filter_by(state=state).first()
         if not row:
             return None

@@ -4,6 +4,8 @@ from flask_login import LoginManager, UserMixin, login_user, logout_user, login_
 from datetime import datetime, timedelta
 from dotenv import load_dotenv
 import os
+import secrets
+from urllib.parse import urlsplit
 import yfinance as yf
 import requests
 import bleach
@@ -21,17 +23,38 @@ load_dotenv()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+def require_env(name):
+    """Read a required secret from the environment. There is deliberately no fallback:
+    a default committed to this repo would be public, so anyone could use it to log in
+    or forge a session cookie. Put these in .env for local development."""
+    value = os.environ.get(name)
+    if not value:
+        raise RuntimeError(f'{name} is not set. Add it to your environment (or .env) and restart.')
+    return value
+
 app = Flask(__name__)
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev-secret-key-change-in-production')
+app.config['SECRET_KEY'] = require_env('SECRET_KEY')
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///stocks.db')
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 
 # Session timeout configuration (15 minutes of inactivity)
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(minutes=15)
 
-# Hardcoded credentials (for development only)
-HARDCODED_USERNAME = os.environ.get('ADMIN_USERNAME', 'admin')
-HARDCODED_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'stockanalysis2026')
+# Cookie hardening. SameSite=Lax stops browsers from attaching the login cookies to
+# POSTs made from other sites, which is what protects the delete/create forms from CSRF.
+# Browsers treat http://localhost as secure, so Secure cookies still work in local dev.
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    REMEMBER_COOKIE_SECURE=True,
+    REMEMBER_COOKIE_HTTPONLY=True,
+    REMEMBER_COOKIE_SAMESITE='Lax',
+)
+
+# Login credentials, from the environment only
+HARDCODED_USERNAME = require_env('ADMIN_USERNAME')
+HARDCODED_PASSWORD = require_env('ADMIN_PASSWORD')
 
 # OpenExchange API Key for currency conversion
 OPENEXCHANGE_API_KEY = os.environ.get('OPENEXCHANGE_API_KEY', '')
@@ -72,6 +95,23 @@ def before_request():
     if current_user.is_authenticated:
         session.permanent = True
         app.permanent_session_lifetime = timedelta(minutes=15)
+
+@app.after_request
+def set_security_headers(response):
+    response.headers.setdefault('X-Frame-Options', 'DENY')
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    if request.is_secure or request.headers.get('X-Forwarded-Proto') == 'https':
+        response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000')
+    return response
+
+def is_safe_redirect_target(target):
+    """Only allow redirects to a path on this site, never to another host."""
+    if not target:
+        return False
+    target = target.replace('\\', '/')
+    parsed = urlsplit(target)
+    return not parsed.scheme and not parsed.netloc and target.startswith('/') and not target.startswith('//')
 
 # HTML sanitization helper function
 def sanitize_html(html_content):
@@ -224,7 +264,11 @@ def login():
         password = request.form.get('password')
         remember = request.form.get('remember', False)
         
-        if username == HARDCODED_USERNAME and password == HARDCODED_PASSWORD:
+        valid = (
+            secrets.compare_digest((username or '').encode(), HARDCODED_USERNAME.encode())
+            & secrets.compare_digest((password or '').encode(), HARDCODED_PASSWORD.encode())
+        )
+        if valid:
             user = User(1, username)
             # Remember me extends to 30 days, otherwise 15 minutes
             duration = timedelta(days=30) if remember else timedelta(minutes=15)
@@ -232,7 +276,9 @@ def login():
             session.permanent = True
             flash('Login successful! Welcome back.', 'success')
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('home'))
+            if is_safe_redirect_target(next_page):
+                return redirect(next_page)
+            return redirect(url_for('home'))
         else:
             flash('Invalid username or password. Please try again.', 'danger')
     

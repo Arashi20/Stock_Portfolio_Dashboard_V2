@@ -266,7 +266,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const targetPrice = urlParams.get('target_price');
         const currency = urlParams.get('currency') || '$';
         
-        // Escape user input to prevent XSS
+        // Escape every URL parameter before it goes into innerHTML: this page can be
+        // opened from any link, so the query string is attacker-controlled.
         const tickerEscaped = escapeHtml(ticker);
         const currencyEscaped = escapeHtml(currency);
         
@@ -277,11 +278,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 `<ul>` +
                 `<li>Free Cash Flow: ${parseFloat(fcf).toLocaleString()}</li>` +
                 `<li>Shares Outstanding: ${parseFloat(shares).toLocaleString()}</li>` +
-                `<li>Growth Rate (Years 1-5): ${growth5}%</li>` +
-                `<li>Growth Rate (Years 6-10): ${growth610}%</li>` +
-                `<li>Terminal Growth Rate: ${terminal}%</li>` +
-                `<li>Discount Rate: ${discount}%</li>` +
-                `<li>Share Dilution: ${dilution}%</li>` +
+                `<li>Growth Rate (Years 1-5): ${escapeHtml(growth5)}%</li>` +
+                `<li>Growth Rate (Years 6-10): ${escapeHtml(growth610)}%</li>` +
+                `<li>Terminal Growth Rate: ${escapeHtml(terminal)}%</li>` +
+                `<li>Discount Rate: ${escapeHtml(discount)}%</li>` +
+                `<li>Share Dilution: ${escapeHtml(dilution)}%</li>` +
                 `</ul>` +
                 `<h3>Analysis Notes:</h3>` +
                 `<p>[Add your detailed analysis, insights, and due diligence notes here...]</p>`;
