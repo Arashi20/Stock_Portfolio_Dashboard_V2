@@ -72,7 +72,7 @@ This is a lightweight, personal-use web application designed to streamline stock
 ## 🛠️ Technology Stack
 
 ### Backend
-- **Flask 3.0.0** - Web framework
+- **Flask 3.1.3** - Web framework
 - **Flask-SQLAlchemy 3.1.1** - ORM for database operations
 - **Flask-Login 0.6.3** - User authentication & session management
 - **PostgreSQL** - Production database (Railway)
@@ -89,8 +89,8 @@ This is a lightweight, personal-use web application designed to streamline stock
 - **SEC data.sec.gov** - Official 13F institutional holdings (no API key; requires a
   `SEC_USER_AGENT` with your name and email on every request)
 - **OpenFIGI** - Maps CUSIPs from 13F filings to tickers (free, no key required)
-- **python-dotenv 1.0.0** - Environment variable management
-- **Gunicorn 21.2.0** - WSGI HTTP server for production
+- **python-dotenv 1.2.2** - Environment variable management
+- **Gunicorn 23.0.0** - WSGI HTTP server for production
 
 ### Deployment
 - **Railway** - Cloud platform hosting
@@ -134,7 +134,8 @@ This is a lightweight, personal-use web application designed to streamline stock
 - Server-side session timeout enforcement
 - Environment-based configuration (development vs. production)
 - SQL injection protection via ORM (SQLAlchemy)
-- CSRF protection (Flask built-in)
+- CSRF mitigation via `SameSite=Lax`, `Secure`, `HttpOnly` session and remember-me cookies
+- No default credentials: `SECRET_KEY`, `ADMIN_USERNAME` and `ADMIN_PASSWORD` must be set in the environment (or `.env`), or the app refuses to start
 
 ---
 

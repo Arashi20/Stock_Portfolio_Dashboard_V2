@@ -19,16 +19,16 @@ document.addEventListener('DOMContentLoaded', function() {
             stockInfo.innerHTML = '<div class="loading"><i class="fas fa-spinner fa-spin"></i> Fetching data...</div>';
             
             try {
-                const response = await fetch(`/api/stock-lookup/${ticker}`);
+                const response = await fetch(`/api/stock-lookup/${encodeURIComponent(ticker)}`);
                 const data = await response.json();
                 
                 if (data.error) {
-                    stockInfo.innerHTML = `<div class="alert alert-danger">${data.error}</div>`;
+                    stockInfo.innerHTML = `<div class="alert alert-danger">${escapeHtml(data.error)}</div>`;
                 } else {
                     // Display saved DCF analyses
                     let html = `
                         <div class="saved-analyses">
-                            <h3>Saved Analyses for ${data.ticker} (${data.count})</h3>
+                            <h3>Saved Analyses for ${escapeHtml(data.ticker)} (${data.count})</h3>
                             <div class="analyses-list">
                     `;
                     
@@ -36,8 +36,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         html += `
                             <div class="analysis-card" data-index="${index}">
                                 <div class="analysis-header">
-                                    <span class="analysis-date">${analysis.date}</span>
-                                    <span class="analysis-value">${analysis.currency}${analysis.intrinsic_value.toFixed(2)}</span>
+                                    <span class="analysis-date">${escapeHtml(analysis.date)}</span>
+                                    <span class="analysis-value">${escapeHtml(analysis.currency)}${analysis.intrinsic_value.toFixed(2)}</span>
                                 </div>
                                 <div class="analysis-details">
                                     <span>FCF: ${analysis.free_cash_flow.toLocaleString()}</span>
@@ -109,7 +109,14 @@ function loadAnalysis(index) {
     // Show success message
     document.getElementById('stockInfo').innerHTML = `
         <div class="alert alert-success">
-            <i class="fas fa-check-circle"></i> Analysis from ${analysis.date} loaded successfully!
+            <i class="fas fa-check-circle"></i> Analysis from ${escapeHtml(analysis.date)} loaded successfully!
         </div>
     `;
+}
+
+// Escape text before interpolating it into innerHTML
+function escapeHtml(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
 }

@@ -10,6 +10,7 @@ Postgres via db.py rather than kept in memory, because a Railway redeploy replac
 running process and would otherwise silently invalidate every issued token.
 """
 
+import html
 import os
 import secrets
 import time
@@ -91,6 +92,10 @@ class StockDashboardOAuthProvider(OAuthAuthorizationServerProvider[Authorization
     async def get_login_page(self, state: str) -> HTMLResponse:
         if not state:
             raise HTTPException(400, "Missing state parameter.")
+        # `state` comes straight from the query string -- escape it, or this unauthenticated
+        # page becomes a reflected-XSS vector that can capture the admin password.
+        safe_state = html.escape(state, quote=True)
+        safe_action = html.escape(f"{self.public_url}/login/callback", quote=True)
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -109,8 +114,8 @@ class StockDashboardOAuthProvider(OAuthAuthorizationServerProvider[Authorization
             <h2>Sign in to connect Claude</h2>
             <p>Approving this grants Claude access to create reports and wishlist items in your
                Stock Dashboard app.</p>
-            <form action="{self.public_url}/login/callback" method="post">
-                <input type="hidden" name="state" value="{state}">
+            <form action="{safe_action}" method="post">
+                <input type="hidden" name="state" value="{safe_state}">
                 <div class="form-group">
                     <label for="username">Username</label>
                     <input type="text" id="username" name="username" required autofocus>
@@ -124,7 +129,14 @@ class StockDashboardOAuthProvider(OAuthAuthorizationServerProvider[Authorization
         </body>
         </html>
         """
-        return HTMLResponse(content=html_content)
+        return HTMLResponse(
+            content=html_content,
+            headers={
+                "X-Frame-Options": "DENY",
+                "Content-Security-Policy": "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'",
+                "Referrer-Policy": "no-referrer",
+            },
+        )
 
     async def handle_login_callback(self, request: Request) -> Response:
         form = await request.form()
